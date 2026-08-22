@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
@@ -9,7 +9,8 @@ import {
     X, GraduationCap, CheckCircle2, Layout, PenLine, FileCog, FileUp, 
     DownloadCloud, Image as ImageIcon, RefreshCw, Files, BrainCircuit, 
     Calculator, Compass, Type, PenSquare, LogOut, Save, KeyRound, CalendarDays, Trash2,
-    Clock, Table, HelpCircle, Maximize2, Users, Settings, FlaskConical, Map, Globe, Activity, Music, Palette, Lightbulb, ExternalLink, Wrench
+    Clock, Table, HelpCircle, Maximize2, Users, Settings, FlaskConical, Map, Globe, Activity, Music, Palette, Lightbulb, ExternalLink, Wrench,
+    History, Moon, Sun, MessageSquare, BarChart3, Zap, Share2, Copy, Edit3
 } from 'lucide-react';
 import { Packer } from 'docx';
 import { generateLessonPlan, generateExam, regenerateExamFromPdf, generateSingleImage, generateSimilarExercisesFromPdf, generateSimilarExamFromPdf, locateImagesInPages, filterMeaningfulImages, shuffleExam, generateSimilarExamFromDocx, shuffleDocxExam, generateSimilarExercisesFromDocx, generateMatrixFromDocx, generateMatrixFromPdf, generateOutlineFromDocx, generateOutlineFromPdf, generateSHCM, onAISourceChange, getLastAISource, getLastAIError, fetchRouterConfig, get9RouterModels, getSelected9RouterModel, setSelected9RouterModel, restoreSelectedModel, getLastModelUsed, fixLatexErrors } from './services/geminiService';
@@ -24,6 +25,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 import saveAs from 'file-saver';
 import { UserGuide } from './components/UserGuide';
+import { getHistory, addToHistory, removeFromHistory, clearHistory, getHistoryStats, formatTimeAgo, getTypeLabel, type HistoryItem } from './services/historyService';
 
 
 // Fix for PDF.js import structure in some ESM environments
@@ -34,7 +36,7 @@ if (pdfjs.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 }
 
-type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm';
+type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm' | 'dashboard' | 'comments';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const App = () => {
@@ -68,6 +70,27 @@ const App = () => {
   const [aiModelUsed, setAiModelUsed] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>(getSelected9RouterModel());
   
+  // ===== HISTORY, DARK MODE, TEMPLATES STATE =====
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{role: 'user'|'ai'; text: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [showChat, setShowChat] = useState(false);
+  const [commentInput, setCommentInput] = useState({ students: '', grade: '', subject: '', style: 'tích cực' });
+  const [commentResult, setCommentResult] = useState<string | null>(null);
+
+  // Refresh history khi cần
+  const refreshHistory = useCallback(() => setHistoryItems(getHistory()), []);
+  useEffect(() => { refreshHistory(); }, [refreshHistory]);
+
+  // Dark mode toggle
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('darkMode', String(darkMode));
+  }, [darkMode]);
+
   // ===== ADMIN PANEL STATE =====
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
@@ -928,6 +951,18 @@ useEffect(() => {
       
       const data = await generateLessonPlan(finalInput, setLoadingText);
       setLessonResult(data);
+      // Auto-save lịch sử
+      if (data) {
+        addToHistory({
+          type: 'lesson',
+          title: data.weekName || data.topic,
+          subject: data.subject || subject,
+          grade: data.grade || lessonInput.grade,
+          data: data,
+          preview: `${data.duration} | ${data.periods?.length || 0} tiết`
+        });
+        refreshHistory();
+      }
     } catch (error) {
       handleApiError(error);
     } finally {
@@ -973,6 +1008,10 @@ useEffect(() => {
     try {
       const data = await generateExam(examInput, setLoadingText);
       setExamResult(data);
+      if (data) {
+        addToHistory({ type: 'exam', title: data.title || examInput.topic, subject: examInput.subject, grade: examInput.grade, data, preview: `${examInput.duration} | ${examInput.matrixType}` });
+        refreshHistory();
+      }
     } catch (error) {
        handleApiError(error);
     } finally {
@@ -1004,6 +1043,10 @@ useEffect(() => {
        };
       const data = await generateExam(tempExamInput, setLoadingText);
       setWorksheetResult(data);
+      if (data) {
+        addToHistory({ type: 'worksheet', title: `Phiếu BT: ${worksheetInput.topic}`, subject, grade: lessonInput.grade, data, preview: `${worksheetInput.numQuestions} câu | ${worksheetInput.difficulty}` });
+        refreshHistory();
+      }
     } catch (error) {
        handleApiError(error);
     } finally {
@@ -1941,6 +1984,15 @@ useEffect(() => {
                  <HelpCircle className="w-5 h-5 mr-2" />
                  Hướng dẫn sử dụng
              </button>
+             <button onClick={() => handleTabChange('dashboard')} className={`p-2 rounded-lg transition-colors ${activeTab === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`} title="Thống kê">
+                 <BarChart3 className="w-5 h-5" />
+             </button>
+             <button onClick={() => setShowHistoryPanel(!showHistoryPanel)} className={`p-2 rounded-lg transition-colors ${showHistoryPanel ? 'bg-amber-100 text-amber-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`} title="Lịch sử soạn bài">
+                 <History className="w-5 h-5" />
+             </button>
+             <button onClick={() => setDarkMode(!darkMode)} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title={darkMode ? 'Chế độ sáng' : 'Chế độ tối'}>
+                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+             </button>
              <button onClick={() => setShowSettings(true)} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title="Cài đặt API Key">
                  <Settings className="w-5 h-5" />
              </button>
@@ -2182,6 +2234,17 @@ useEffect(() => {
                     <Users className="w-4 h-4 mr-1 sm:mr-2" />
                     SHCM
                 </button>
+                <button
+                    onClick={() => handleTabChange('comments')}
+                    className={`flex items-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                        activeTab === 'comments'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                >
+                    <PenSquare className="w-4 h-4 mr-1 sm:mr-2" />
+                    Nhận xét HS
+                </button>
                 {/* Mobile: Help button inside tabs */}
                 <button
                     onClick={() => handleTabChange('guide')}
@@ -2250,6 +2313,275 @@ useEffect(() => {
         {activeTab === 'guide' && (
             <div className="max-w-4xl mx-auto w-full mt-4">
                 <UserGuide />
+            </div>
+        )}
+
+        {/* ===== DASHBOARD TAB ===== */}
+        {activeTab === 'dashboard' && (() => {
+            const stats = getHistoryStats();
+            return (
+            <div className="max-w-5xl mx-auto w-full mt-4 space-y-6 fade-slide-in">
+                <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800">📊 Thống kê hoạt động</h2>
+                    <p className="text-slate-500 mt-1">Tổng quan công việc soạn bài của bạn</p>
+                </div>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 text-center">
+                        <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
+                        <div className="text-sm text-slate-500 mt-1">Tổng tài liệu</div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 text-center">
+                        <div className="text-3xl font-bold text-emerald-600">{stats.thisWeek}</div>
+                        <div className="text-sm text-slate-500 mt-1">Tuần này</div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 text-center">
+                        <div className="text-3xl font-bold text-indigo-600">{stats.thisMonth}</div>
+                        <div className="text-sm text-slate-500 mt-1">Tháng này</div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6 text-center">
+                        <div className="text-3xl font-bold text-amber-600">{Object.keys(stats.bySubject).length}</div>
+                        <div className="text-sm text-slate-500 mt-1">Môn đã soạn</div>
+                    </div>
+                </div>
+                {/* By Type */}
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-700 mb-4">Phân loại tài liệu</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {[
+                            { label: '📝 Giáo án', count: stats.lessons, color: 'bg-blue-50 text-blue-700' },
+                            { label: '📋 Đề thi', count: stats.exams, color: 'bg-indigo-50 text-indigo-700' },
+                            { label: '📄 Phiếu BT', count: stats.worksheets, color: 'bg-pink-50 text-pink-700' },
+                            { label: '📚 Sổ SHCM', count: stats.shcm, color: 'bg-emerald-50 text-emerald-700' },
+                        ].map(item => (
+                            <div key={item.label} className={`${item.color} rounded-xl p-4 text-center`}>
+                                <div className="text-2xl font-bold">{item.count}</div>
+                                <div className="text-sm font-medium mt-1">{item.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                {/* By Subject */}
+                {Object.keys(stats.bySubject).length > 0 && (
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+                    <h3 className="font-bold text-slate-700 mb-4">Theo môn học</h3>
+                    <div className="space-y-2">
+                        {Object.entries(stats.bySubject).sort((a,b) => b[1]-a[1]).map(([subj, count]) => (
+                            <div key={subj} className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-slate-600">{subj}</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-2 bg-blue-200 rounded-full" style={{width: `${Math.max(30, (count/stats.total)*200)}px`}}>
+                                        <div className="h-full bg-blue-600 rounded-full" style={{width: '100%'}} />
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-700 w-8 text-right">{count}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                )}
+                {/* Achievement */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-6 text-center">
+                    <div className="text-4xl mb-2">
+                        {stats.total >= 100 ? '🏆' : stats.total >= 50 ? '🥇' : stats.total >= 20 ? '🥈' : stats.total >= 5 ? '🥉' : '⭐'}
+                    </div>
+                    <div className="font-bold text-amber-800">
+                        {stats.total >= 100 ? 'Giáo viên xuất sắc!' : stats.total >= 50 ? 'Rất tích cực!' : stats.total >= 20 ? 'Đang tiến bộ!' : stats.total >= 5 ? 'Khởi đầu tốt!' : 'Hãy bắt đầu soạn bài!'}
+                    </div>
+                    <p className="text-sm text-amber-600 mt-1">Đã soạn {stats.total} tài liệu</p>
+                </div>
+            </div>
+            );
+        })()}
+
+
+        {/* ===== NHẬN XÉT HỌC SINH TAB ===== */}
+        {activeTab === 'comments' && (
+            <div className="max-w-5xl mx-auto w-full mt-4 fade-slide-in">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="lg:col-span-4">
+                        <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
+                            <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 px-6 py-4 border-b border-slate-100">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <PenSquare className="w-5 h-5 text-purple-600" /> Nhận xét học sinh
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-1">AI tạo nhận xét cá nhân hóa cho từng HS</p>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Danh sách học sinh</label>
+                                    <textarea
+                                        value={commentInput.students}
+                                        onChange={e => setCommentInput({...commentInput, students: e.target.value})}
+                                        placeholder={"Mỗi dòng 1 HS, theo format:\nNguyễn Văn A - Giỏi - Tốt - Tích cực phát biểu\nTrần Thị B - Khá - Tốt - Cần rèn chữ viết\nLê Văn C - TB - Khá - Hay nghỉ học"}
+                                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[200px] font-mono"
+                                    />
+                                    <p className="text-xs text-slate-400 mt-1">Format: Tên - Học lực - Hạnh kiểm - Đặc điểm</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Lớp</label>
+                                        <input value={commentInput.grade} onChange={e => setCommentInput({...commentInput, grade: e.target.value})} placeholder="6A1" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Phong cách</label>
+                                        <select value={commentInput.style} onChange={e => setCommentInput({...commentInput, style: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="tích cực">Tích cực, khích lệ</option>
+                                            <option value="trung lập">Trung lập, khách quan</option>
+                                            <option value="chi tiết">Chi tiết, cụ thể</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        if (!commentInput.students.trim()) { alert('Vui lòng nhập danh sách HS!'); return; }
+                                        setLoading(true);
+                                        setLoadingText('Đang tạo nhận xét cho từng học sinh...');
+                                        try {
+                                            const { callAI: callAIFn } = await import('./services/geminiService');
+                                            const result = await callAIFn(
+                                                `Bạn là giáo viên chủ nhiệm lớp ${commentInput.grade || '6'}. Hãy viết nhận xét cuối kỳ cho từng học sinh dưới đây. Mỗi nhận xét 3-4 câu, phong cách ${commentInput.style}, đúng văn phong sư phạm Việt Nam. Không lặp lại cấu trúc câu giữa các HS.\n\nDanh sách:\n${commentInput.students}\n\nFormat output:\n**Họ tên HS 1:** Nhận xét...\n**Họ tên HS 2:** Nhận xét...\n(tiếp tục cho tất cả HS)`
+                                            );
+                                            setCommentResult(result);
+                                        } catch (e) { alert('Lỗi tạo nhận xét: ' + (e as any).message); }
+                                        setLoading(false);
+                                    }}
+                                    disabled={loading}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center"
+                                >
+                                    {loading && activeTab === 'comments' ? <><Loader2 className="animate-spin mr-2 w-5 h-5" /> {loadingText}</> : <><Sparkles className="mr-2 w-5 h-5" /> TẠO NHẬN XÉT</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="lg:col-span-8">
+                        {commentResult ? (
+                            <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
+                                <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                                    <h3 className="font-bold text-slate-800">Kết quả nhận xét</h3>
+                                    <button onClick={() => { navigator.clipboard.writeText(commentResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
+                                        <Copy className="w-4 h-4" /> Sao chép
+                                    </button>
+                                </div>
+                                <div className="p-6 prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{commentResult}</ReactMarkdown>
+                                </div>
+                            </div>
+                        ) : (
+                            <EmptyState title="Nhận xét học sinh" message="Nhập danh sách HS → AI sẽ tạo nhận xét cá nhân hóa cho từng em, đúng văn phong sư phạm." icon={<PenSquare className="w-12 h-12 text-purple-300" />} />
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* ===== HISTORY SLIDE PANEL ===== */}
+        {showHistoryPanel && (
+            <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setShowHistoryPanel(false)}>
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+                <div className="relative w-full max-w-md bg-white shadow-2xl h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-10">
+                        <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><History className="w-5 h-5" /> Lịch sử soạn bài</h2>
+                        <div className="flex gap-2">
+                            {historyItems.length > 0 && (
+                                <button onClick={() => { if(confirm('Xóa toàn bộ lịch sử?')) { clearHistory(); refreshHistory(); } }} className="text-xs text-red-500 hover:text-red-700 font-medium">Xóa tất cả</button>
+                            )}
+                            <button onClick={() => setShowHistoryPanel(false)} className="p-1 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+                        </div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                        {historyItems.length === 0 ? (
+                            <div className="text-center py-12 text-slate-400">
+                                <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                <p className="font-medium">Chưa có lịch sử</p>
+                                <p className="text-sm">Kết quả soạn bài sẽ tự động lưu tại đây</p>
+                            </div>
+                        ) : historyItems.map(item => {
+                            const typeInfo = getTypeLabel(item.type);
+                            return (
+                            <div key={item.id} className="bg-slate-50 hover:bg-slate-100 rounded-xl p-4 cursor-pointer transition-colors group border border-slate-100"
+                                onClick={() => {
+                                    if (item.type === 'lesson') { setLessonResult(item.data); setActiveTab('lesson'); }
+                                    else if (item.type === 'exam') { setExamResult(item.data); setActiveTab('exam'); }
+                                    else if (item.type === 'worksheet') { setWorksheetResult(item.data); setActiveTab('worksheet'); }
+                                    else if (item.type === 'shcm') { setShcmResult(item.data); setActiveTab('shcm'); }
+                                    setShowHistoryPanel(false);
+                                }}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full bg-${typeInfo.color}-100 text-${typeInfo.color}-700`}>{typeInfo.emoji} {typeInfo.label}</span>
+                                            <span className="text-xs text-slate-400">{formatTimeAgo(item.createdAt)}</span>
+                                        </div>
+                                        <h4 className="font-semibold text-sm text-slate-800 truncate">{item.title}</h4>
+                                        <p className="text-xs text-slate-500 mt-0.5">{item.subject} • {item.grade} • {item.preview}</p>
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); removeFromHistory(item.id); refreshHistory(); }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded-lg transition-opacity">
+                                        <Trash2 className="w-4 h-4 text-red-400" />
+                                    </button>
+                                </div>
+                            </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* ===== FLOATING CHAT BUTTON ===== */}
+        <button 
+            onClick={() => setShowChat(!showChat)}
+            className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-full shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1"
+            title="Hỏi AI trợ giảng"
+        >
+            <MessageSquare className="w-6 h-6" />
+        </button>
+
+        {/* ===== CHAT PANEL ===== */}
+        {showChat && (
+            <div className="fixed bottom-20 right-6 z-50 w-96 max-h-[500px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 flex items-center justify-between">
+                    <span className="font-bold text-white text-sm">🤖 Trợ lý AI dạy học</span>
+                    <button onClick={() => setShowChat(false)} className="text-white/70 hover:text-white"><X className="w-4 h-4" /></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px] max-h-[350px]">
+                    {chatMessages.length === 0 && (
+                        <div className="text-center text-slate-400 text-sm py-8">
+                            <p className="font-medium mb-2">Chào thầy/cô! 👋</p>
+                            <p>Hỏi bất cứ điều gì về phương pháp giảng dạy, soạn bài, đánh giá HS...</p>
+                        </div>
+                    )}
+                    {chatMessages.map((msg, i) => (
+                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                                {msg.role === 'ai' ? <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{msg.text}</ReactMarkdown> : msg.text}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="border-t border-slate-200 p-3 flex gap-2">
+                    <input 
+                        value={chatInput} 
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={async e => {
+                            if (e.key === 'Enter' && chatInput.trim()) {
+                                const q = chatInput.trim();
+                                setChatInput('');
+                                setChatMessages(prev => [...prev, {role: 'user', text: q}]);
+                                try {
+                                    const { callAI } = await import('./services/geminiService');
+                                    const answer = await callAI(`Bạn là trợ lý AI chuyên về giáo dục Việt Nam (GDPT 2018, CV5512). Hãy trả lời ngắn gọn, hữu ích cho giáo viên.\n\nCâu hỏi: ${q}`);
+                                    setChatMessages(prev => [...prev, {role: 'ai', text: answer || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'}]);
+                                } catch {
+                                    setChatMessages(prev => [...prev, {role: 'ai', text: '❌ Lỗi kết nối AI. Vui lòng thử lại.'}]);
+                                }
+                            }
+                        }}
+                        placeholder="Hỏi về phương pháp dạy học..." 
+                        className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
             </div>
         )}
 
@@ -2719,6 +3051,21 @@ useEffect(() => {
                                     placeholder="Ví dụ: Lớp học năng động, tập trung vào hoạt động nhóm, có sử dụng máy chiếu..."
                                     className="block w-full bg-white border border-slate-300 rounded-lg py-3 px-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-shadow resize-y"
                                 />
+                                {/* Quick Templates */}
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {[
+                                        { label: '🎯 STEM', text: 'Tích hợp STEM, học sinh trải nghiệm thực tế, sử dụng đồ dùng tự làm' },
+                                        { label: '💻 CNTT', text: 'Sử dụng máy chiếu, phần mềm mô phỏng, học sinh thao tác trên máy tính' },
+                                        { label: '👥 Nhóm', text: 'Tổ chức hoạt động nhóm 4-6 HS, kỹ thuật khăn trải bàn, sơ đồ tư duy' },
+                                        { label: '🎮 Trò chơi', text: 'Tích hợp trò chơi học tập, quiz tương tác, thi đua giữa các nhóm' },
+                                        { label: '📊 Phân hóa', text: 'Dạy phân hóa theo năng lực: bài cơ bản cho HS yếu, bài nâng cao cho HS giỏi' },
+                                    ].map(t => (
+                                        <button key={t.label} type="button" onClick={() => setLessonInput({...lessonInput, context: lessonInput.context ? lessonInput.context + '. ' + t.text : t.text})}
+                                            className="text-xs bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-600 hover:text-blue-700 px-2.5 py-1 rounded-lg transition-colors font-medium">
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 

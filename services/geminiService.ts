@@ -2498,3 +2498,30 @@ export const generateSHCM = async (
         throw error;
     }
 };
+
+// ==================== SIMPLE CALL AI (for chatbot) ====================
+export const callAI = async (prompt: string): Promise<string | null> => {
+    if (!_routerConfigFetched) await fetchRouterConfig();
+    
+    // Try 9Router first
+    if (is9RouterAvailable()) {
+        const result = await call9Router({ prompt, jsonMode: false });
+        if (result) return result;
+    }
+    
+    // Fallback to Gemini
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) return null;
+    
+    try {
+        const genAI = new GoogleGenAI({ apiKey });
+        const response = await genAI.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: prompt,
+        });
+        return response.text || null;
+    } catch (e) {
+        console.error('[callAI] Gemini error:', e);
+        return null;
+    }
+};
