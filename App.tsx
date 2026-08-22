@@ -26,7 +26,7 @@ import mammoth from 'mammoth';
 import saveAs from 'file-saver';
 import { UserGuide } from './components/UserGuide';
 import { getHistory, addToHistory, removeFromHistory, clearHistory, getHistoryStats, formatTimeAgo, getTypeLabel, type HistoryItem } from './services/historyService';
-import { getQuestionBank, addQuestion, removeQuestion, clearQuestionBank, filterQuestions, getQuestionBankStats, type QuestionItem } from './services/questionBankService';
+import { getQuestionBank, addQuestion, removeQuestion, filterQuestions, type QuestionItem } from './services/questionBankService';
 
 
 // Fix for PDF.js import structure in some ESM environments
@@ -85,9 +85,7 @@ const App = () => {
   // A3: Lesson editing state
   const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [editedLessonMarkdown, setEditedLessonMarkdown] = useState('');
-  
 
-  
   // C2: Edu Plan
   const [eduPlanInput, setEduPlanInput] = useState({ semester: 'Cả năm', year: '2025-2026', notes: '' });
   const [eduPlanResult, setEduPlanResult] = useState<string | null>(null);
@@ -2521,9 +2519,15 @@ useEffect(() => {
                                         <button onClick={() => { navigator.clipboard.writeText(commentResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
                                             <Copy className="w-4 h-4" /> Sao chép
                                         </button>
-                                        <button onClick={() => {
+                                        <button onClick={async () => {
                                             const blob = new Blob([commentResult], { type: 'text/plain;charset=utf-8' });
-                                            saveAs(blob, `Nhan_xet_HS_${commentInput.grade || 'lop'}.txt`);
+                                            const fileName = `Nhan_xet_HS_${commentInput.grade || 'lop'}.txt`;
+                                            const electronAPI = (window as any).electronAPI;
+                                            if (electronAPI?.saveFile) {
+                                                const ab = await blob.arrayBuffer();
+                                                const b64 = btoa(new Uint8Array(ab).reduce((d, b) => d + String.fromCharCode(b), ''));
+                                                await electronAPI.saveFile(fileName, b64, 'txt');
+                                            } else { saveAs(blob, fileName); }
                                         }} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
                                             <Download className="w-4 h-4" /> Tải file
                                         </button>
@@ -2555,9 +2559,15 @@ useEffect(() => {
                                 <p className="text-xs text-slate-500 mt-1">AI tạo KHGD theo CV5512/BGDĐT</p>
                             </div>
                             <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Môn học</label>
-                                    <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{subject}</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Môn học</label>
+                                        <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{subject}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Lớp</label>
+                                        <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{lessonInput.grade}</p>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
@@ -2608,9 +2618,15 @@ useEffect(() => {
                                         <button onClick={() => { navigator.clipboard.writeText(eduPlanResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
                                             <Copy className="w-4 h-4" /> Sao chép
                                         </button>
-                                        <button onClick={() => {
+                                        <button onClick={async () => {
                                             const blob = new Blob([eduPlanResult], { type: 'text/plain;charset=utf-8' });
-                                            saveAs(blob, `KHGD_${subject}_${eduPlanInput.year}.txt`);
+                                            const fileName = `KHGD_${subject}_${eduPlanInput.year}.txt`;
+                                            const electronAPI = (window as any).electronAPI;
+                                            if (electronAPI?.saveFile) {
+                                                const ab = await blob.arrayBuffer();
+                                                const b64 = btoa(new Uint8Array(ab).reduce((d, b) => d + String.fromCharCode(b), ''));
+                                                await electronAPI.saveFile(fileName, b64, 'txt');
+                                            } else { saveAs(blob, fileName); }
                                         }} className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-800 font-medium">
                                             <Download className="w-4 h-4" /> Tải file
                                         </button>
