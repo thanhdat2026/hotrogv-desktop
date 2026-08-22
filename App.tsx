@@ -443,6 +443,9 @@ const App = () => {
                   secretaryName: shcmInput.secretaryName,
                   teachers: shcmInput.teachers
               });
+              // Auto-save SHCM to history
+              addToHistory({ type: 'shcm', title: `SHCM ${shcmInput.groupName} - ${shcmInput.academicYear}`, subject: shcmInput.groupName, grade: '', data: result, preview: `${shcmInput.selectedMonths.length || 'Cả năm'} tháng` });
+              refreshHistory();
           }
       } catch (err: any) {
            handleApiError(err);
