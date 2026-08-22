@@ -26,6 +26,7 @@ import mammoth from 'mammoth';
 import saveAs from 'file-saver';
 import { UserGuide } from './components/UserGuide';
 import { getHistory, addToHistory, removeFromHistory, clearHistory, getHistoryStats, formatTimeAgo, getTypeLabel, type HistoryItem } from './services/historyService';
+import { getQuestionBank, addQuestion, removeQuestion, clearQuestionBank, filterQuestions, getQuestionBankStats, type QuestionItem } from './services/questionBankService';
 
 
 // Fix for PDF.js import structure in some ESM environments
@@ -36,7 +37,7 @@ if (pdfjs.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 }
 
-type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm' | 'dashboard' | 'comments';
+type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm' | 'dashboard' | 'comments' | 'edu-plan';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const App = () => {
@@ -80,6 +81,28 @@ const App = () => {
   const [showChat, setShowChat] = useState(false);
   const [commentInput, setCommentInput] = useState({ students: '', grade: '', subject: '', style: 'tích cực' });
   const [commentResult, setCommentResult] = useState<string | null>(null);
+  
+  // A3: Lesson editing state
+  const [isEditingLesson, setIsEditingLesson] = useState(false);
+  const [editedLessonMarkdown, setEditedLessonMarkdown] = useState('');
+  
+  // A4: Regenerate section
+  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
+  
+  // B4: Share
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  
+  // C2: Edu Plan
+  const [eduPlanInput, setEduPlanInput] = useState({ semester: 'Cả năm', year: '2025-2026', notes: '' });
+  const [eduPlanResult, setEduPlanResult] = useState<string | null>(null);
+  
+  // C3: Question Bank
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
+  const [qbQuestions, setQbQuestions] = useState<QuestionItem[]>([]);
+  const [qbFilter, setQbFilter] = useState({ search: '', level: '', type: '' });
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const [newQuestion, setNewQuestion] = useState({ content: '', answer: '', chapter: '', level: 'Nhận biết' as const, type: 'TN' as const, tags: '' });
+  const refreshQB = useCallback(() => setQbQuestions(getQuestionBank()), []);
 
   // Refresh history khi cần
   const refreshHistory = useCallback(() => setHistoryItems(getHistory()), []);
@@ -1987,6 +2010,9 @@ useEffect(() => {
              <button onClick={() => handleTabChange('dashboard')} className={`p-2 rounded-lg transition-colors ${activeTab === 'dashboard' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`} title="Thống kê">
                  <BarChart3 className="w-5 h-5" />
              </button>
+             <button onClick={() => { setShowQuestionBank(!showQuestionBank); refreshQB(); }} className={`p-2 rounded-lg transition-colors ${showQuestionBank ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`} title="Ngân hàng câu hỏi">
+                 <BrainCircuit className="w-5 h-5" />
+             </button>
              <button onClick={() => setShowHistoryPanel(!showHistoryPanel)} className={`p-2 rounded-lg transition-colors ${showHistoryPanel ? 'bg-amber-100 text-amber-700' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`} title="Lịch sử soạn bài">
                  <History className="w-5 h-5" />
              </button>
@@ -2245,6 +2271,17 @@ useEffect(() => {
                     <PenSquare className="w-4 h-4 mr-1 sm:mr-2" />
                     Nhận xét HS
                 </button>
+                <button
+                    onClick={() => handleTabChange('edu-plan')}
+                    className={`flex items-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
+                        activeTab === 'edu-plan'
+                        ? 'bg-cyan-600 text-white shadow-md'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                >
+                    <CalendarDays className="w-4 h-4 mr-1 sm:mr-2" />
+                    KHGD
+                </button>
                 {/* Mobile: Help button inside tabs */}
                 <button
                     onClick={() => handleTabChange('guide')}
@@ -2475,6 +2512,85 @@ useEffect(() => {
             </div>
         )}
 
+
+        {/* ===== KẾ HOẠCH GIÁO DỤC TAB ===== */}
+        {activeTab === 'edu-plan' && (
+            <div className="max-w-5xl mx-auto w-full mt-4 fade-slide-in">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <div className="lg:col-span-4">
+                        <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
+                            <div className="bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4 border-b border-slate-100">
+                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <CalendarDays className="w-5 h-5 text-cyan-600" /> Kế hoạch giáo dục
+                                </h2>
+                                <p className="text-xs text-slate-500 mt-1">AI tạo KHGD theo CV5512/BGDĐT</p>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Môn học</label>
+                                    <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{subject}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Năm học</label>
+                                        <input value={eduPlanInput.year} onChange={e => setEduPlanInput({...eduPlanInput, year: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Phạm vi</label>
+                                        <select value={eduPlanInput.semester} onChange={e => setEduPlanInput({...eduPlanInput, semester: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="Cả năm">Cả năm</option>
+                                            <option value="Học kỳ 1">Học kỳ 1</option>
+                                            <option value="Học kỳ 2">Học kỳ 2</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Yêu cầu bổ sung</label>
+                                    <textarea value={eduPlanInput.notes} onChange={e => setEduPlanInput({...eduPlanInput, notes: e.target.value})} placeholder="VD: Tăng cường STEM, đổi mới PPDH, sử dụng CNTT..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[80px]" />
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        setLoading(true);
+                                        setLoadingText('Đang tạo kế hoạch giáo dục...');
+                                        try {
+                                            const { callAI: callAIFn } = await import('./services/geminiService');
+                                            const grade = lessonInput.grade;
+                                            const result = await callAIFn(
+                                                `Bạn là chuyên gia giáo dục Việt Nam. Hãy soạn KẾ HOẠCH GIÁO DỤC môn ${subject} lớp ${grade} năm học ${eduPlanInput.year}, phạm vi: ${eduPlanInput.semester}.\n\nTheo CV5512/BGDĐT và GDPT 2018, bao gồm:\n\n## I. MỤC TIÊU\n### 1. Về phẩm chất\n### 2. Về năng lực chung\n### 3. Về năng lực đặc thù\n\n## II. PHÂN PHỐI CHƯƠNG TRÌNH\nBảng Markdown gồm: STT | Tuần | Tên bài/chủ đề | Số tiết | Thiết bị | Ghi chú\n(Liệt kê đầy đủ 35 tuần cho cả năm, hoặc 18 tuần cho HK1, 17 tuần cho HK2)\n\n## III. THIẾT BỊ DẠY HỌC\nDanh sách thiết bị theo từng chương\n\n## IV. KIỂM TRA, ĐÁNH GIÁ\n- Đánh giá thường xuyên\n- Đánh giá định kỳ (giữa kỳ, cuối kỳ)\n- Ma trận đề kiểm tra\n\n${eduPlanInput.notes ? `\nYÊU CẦU BỔ SUNG: ${eduPlanInput.notes}` : ''}\n\nViết đầy đủ, chi tiết, đúng format Markdown.`
+                                            );
+                                            setEduPlanResult(result);
+                                        } catch (e) { alert('Lỗi: ' + (e as any).message); }
+                                        setLoading(false);
+                                    }}
+                                    disabled={loading}
+                                    className="w-full bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center"
+                                >
+                                    {loading && activeTab === 'edu-plan' ? <><Loader2 className="animate-spin mr-2 w-5 h-5" /> {loadingText}</> : <><Sparkles className="mr-2 w-5 h-5" /> TẠO KẾ HOẠCH</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="lg:col-span-8">
+                        {eduPlanResult ? (
+                            <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
+                                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                                    <h3 className="font-bold text-slate-800">Kế hoạch giáo dục — {subject}</h3>
+                                    <button onClick={() => { navigator.clipboard.writeText(eduPlanResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
+                                        <Copy className="w-4 h-4" /> Sao chép
+                                    </button>
+                                </div>
+                                <div className="p-6 prose prose-sm max-w-none overflow-x-auto">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{eduPlanResult}</ReactMarkdown>
+                                </div>
+                            </div>
+                        ) : (
+                            <EmptyState title="Kế hoạch giáo dục" message="AI sẽ tạo KHGD theo CV5512 bao gồm mục tiêu, phân phối chương trình, thiết bị, kiểm tra đánh giá." icon={<CalendarDays className="w-12 h-12 text-cyan-300" />} />
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
         {/* ===== HISTORY SLIDE PANEL ===== */}
         {showHistoryPanel && (
             <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setShowHistoryPanel(false)}>
@@ -2524,6 +2640,104 @@ useEffect(() => {
                             </div>
                             );
                         })}
+                    </div>
+                </div>
+            </div>
+        )}
+
+
+        {/* ===== QUESTION BANK PANEL ===== */}
+        {showQuestionBank && (
+            <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setShowQuestionBank(false)}>
+                <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+                <div className="relative w-full max-w-lg bg-white shadow-2xl h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="sticky top-0 bg-white border-b border-slate-200 p-4 z-10">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="font-bold text-lg text-slate-800 flex items-center gap-2"><BrainCircuit className="w-5 h-5" /> Ngân hàng câu hỏi</h2>
+                            <div className="flex gap-2">
+                                <button onClick={() => setAddingQuestion(!addingQuestion)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded-lg font-bold hover:bg-blue-700">+ Thêm</button>
+                                <button onClick={() => setShowQuestionBank(false)} className="p-1 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+                            </div>
+                        </div>
+                        {/* Filters */}
+                        <div className="flex gap-2">
+                            <input value={qbFilter.search} onChange={e => setQbFilter({...qbFilter, search: e.target.value})} placeholder="Tìm kiếm..." className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-xs" />
+                            <select value={qbFilter.level} onChange={e => setQbFilter({...qbFilter, level: e.target.value})} className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs">
+                                <option value="">Tất cả MĐ</option>
+                                <option value="Nhận biết">NB</option>
+                                <option value="Thông hiểu">TH</option>
+                                <option value="Vận dụng">VD</option>
+                                <option value="Vận dụng cao">VDC</option>
+                            </select>
+                            <select value={qbFilter.type} onChange={e => setQbFilter({...qbFilter, type: e.target.value})} className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs">
+                                <option value="">TN+TL</option>
+                                <option value="TN">TN</option>
+                                <option value="TL">TL</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    {/* Add Question Form */}
+                    {addingQuestion && (
+                        <div className="p-4 bg-blue-50 border-b border-blue-200 space-y-3">
+                            <textarea value={newQuestion.content} onChange={e => setNewQuestion({...newQuestion, content: e.target.value})} placeholder="Nội dung câu hỏi..." className="w-full border rounded-lg px-3 py-2 text-sm min-h-[80px]" />
+                            <textarea value={newQuestion.answer} onChange={e => setNewQuestion({...newQuestion, answer: e.target.value})} placeholder="Đáp án (tùy chọn)..." className="w-full border rounded-lg px-3 py-2 text-sm min-h-[40px]" />
+                            <div className="flex gap-2">
+                                <input value={newQuestion.chapter} onChange={e => setNewQuestion({...newQuestion, chapter: e.target.value})} placeholder="Chương/Chủ đề" className="flex-1 border rounded-lg px-3 py-2 text-xs" />
+                                <select value={newQuestion.level} onChange={e => setNewQuestion({...newQuestion, level: e.target.value as any})} className="border rounded-lg px-2 py-2 text-xs">
+                                    <option value="Nhận biết">NB</option>
+                                    <option value="Thông hiểu">TH</option>
+                                    <option value="Vận dụng">VD</option>
+                                    <option value="Vận dụng cao">VDC</option>
+                                </select>
+                                <select value={newQuestion.type} onChange={e => setNewQuestion({...newQuestion, type: e.target.value as any})} className="border rounded-lg px-2 py-2 text-xs">
+                                    <option value="TN">TN</option>
+                                    <option value="TL">TL</option>
+                                </select>
+                            </div>
+                            <button onClick={() => {
+                                if (!newQuestion.content.trim()) return;
+                                addQuestion({ content: newQuestion.content, answer: newQuestion.answer, chapter: newQuestion.chapter, level: newQuestion.level, type: newQuestion.type, subject, grade: lessonInput.grade, tags: newQuestion.tags.split(',').map(t => t.trim()).filter(Boolean) });
+                                setNewQuestion({ content: '', answer: '', chapter: '', level: 'Nhận biết', type: 'TN', tags: '' });
+                                refreshQB();
+                                setAddingQuestion(false);
+                            }} className="w-full bg-blue-600 text-white text-sm font-bold py-2 rounded-lg hover:bg-blue-700">Lưu câu hỏi</button>
+                        </div>
+                    )}
+                    
+                    <div className="p-4 space-y-3">
+                        <p className="text-xs text-slate-400">{filterQuestions({...qbFilter, subject}).length} câu hỏi</p>
+                        {filterQuestions({...qbFilter, subject}).length === 0 ? (
+                            <div className="text-center py-12 text-slate-400">
+                                <BrainCircuit className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                                <p className="font-medium">Chưa có câu hỏi</p>
+                                <p className="text-sm">Bấm "+ Thêm" để lưu câu hỏi hay vào ngân hàng</p>
+                            </div>
+                        ) : filterQuestions({...qbFilter, subject}).map(q => (
+                            <div key={q.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100 group">
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex gap-1.5 flex-wrap">
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${q.type === 'TN' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{q.type}</span>
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${q.level === 'Nhận biết' ? 'bg-green-100 text-green-700' : q.level === 'Thông hiểu' ? 'bg-yellow-100 text-yellow-700' : q.level === 'Vận dụng' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>{q.level}</span>
+                                        {q.chapter && <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{q.chapter}</span>}
+                                    </div>
+                                    <button onClick={() => { removeQuestion(q.id); refreshQB(); }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded-lg transition-opacity">
+                                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                    </button>
+                                </div>
+                                <div className="text-sm text-slate-800 leading-relaxed prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{q.content}</ReactMarkdown>
+                                </div>
+                                {q.answer && (
+                                    <details className="mt-2">
+                                        <summary className="text-xs text-blue-600 cursor-pointer font-medium">Xem đáp án</summary>
+                                        <div className="mt-1 text-sm text-slate-600 bg-white p-2 rounded-lg border">
+                                            <ReactMarkdown remarkPlugins={[remarkMath, remarkGfm]} rehypePlugins={[rehypeKatex]}>{q.answer}</ReactMarkdown>
+                                        </div>
+                                    </details>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -3942,10 +4156,57 @@ useEffect(() => {
                                                 ))}
                                             </select>
                                         )}
-                                        <span className="text-xs text-slate-400 bg-white px-2 py-1 rounded border border-slate-200">A4 Preview</span>
+                                        <button
+                                            onClick={() => {
+                                                if (isEditingLesson) {
+                                                    // Save edits
+                                                    setLessonResult({...lessonResult!, fullMarkdown: editedLessonMarkdown});
+                                                    setIsEditingLesson(false);
+                                                } else {
+                                                    setEditedLessonMarkdown(lessonResult!.fullMarkdown);
+                                                    setIsEditingLesson(true);
+                                                }
+                                            }}
+                                            className={`text-xs px-2 py-1 rounded border transition-colors flex items-center gap-1 ${isEditingLesson ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                                        >
+                                            <Edit3 className="w-3 h-3" /> {isEditingLesson ? 'Lưu' : 'Sửa'}
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                try {
+                                                    const data = { type: 'lesson', result: lessonResult, teacher: teacherProfile };
+                                                    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+                                                    const url = `${window.location.origin}${window.location.pathname}?share=${encoded.substring(0, 2000)}`;
+                                                    navigator.clipboard.writeText(url);
+                                                    setShareUrl(url);
+                                                    alert('Đã sao chép link chia sẻ!');
+                                                } catch { alert('Dữ liệu quá lớn để chia sẻ qua link. Hãy tải Word và gửi file.'); }
+                                            }}
+                                            className="text-xs px-2 py-1 rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center gap-1"
+                                        >
+                                            <Share2 className="w-3 h-3" /> Chia sẻ
+                                        </button>
+                                        <span className="text-xs text-slate-400 bg-white px-2 py-1 rounded border border-slate-200">v1.0</span>
                                     </div>
                                 </div>
                                 <div className="p-10 bg-white min-h-[600px] overflow-auto flex-grow">
+                                    {isEditingLesson ? (
+                                        <div className="max-w-[21cm] mx-auto">
+                                            <div className="mb-3 flex items-center justify-between">
+                                                <p className="text-sm text-amber-600 font-medium">✏️ Chế độ chỉnh sửa — sửa Markdown trực tiếp</p>
+                                                <button onClick={() => { setLessonResult({...lessonResult!, fullMarkdown: editedLessonMarkdown}); setIsEditingLesson(false); }}
+                                                    className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-green-700">
+                                                    ✓ Lưu & Xem trước
+                                                </button>
+                                            </div>
+                                            <textarea
+                                                value={editedLessonMarkdown}
+                                                onChange={e => setEditedLessonMarkdown(e.target.value)}
+                                                className="w-full min-h-[600px] border border-slate-300 rounded-lg p-4 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                                                spellCheck={false}
+                                            />
+                                        </div>
+                                    ) : (
                                     <div className="max-w-[21cm] mx-auto bg-white markdown-content">
                                         <div className="text-center mb-8">
                                             <p className="font-bold text-sm text-slate-800">{teacherProfile.schoolName ? teacherProfile.schoolName.toUpperCase() : "TRƯỜNG THCS ........................"}</p>
@@ -3970,6 +4231,7 @@ useEffect(() => {
                                         )}
                                         {renderMarkdown(lessonResult.fullMarkdown)}
                                     </div>
+                                    )}
                                 </div>
                             </div>
                             {lessonResult.generatedImages && lessonResult.generatedImages.length > 0 && (
