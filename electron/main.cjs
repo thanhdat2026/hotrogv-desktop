@@ -214,6 +214,8 @@ function setupAutoUpdater() {
 
 // ==================== IPC HANDLERS ====================
 function setupIPC() {
+    const fs = require('fs');
+
     // Trả về thông tin phiên bản cho renderer
     ipcMain.handle('get-app-version', () => {
         return app.getVersion();
@@ -227,6 +229,47 @@ function setupIPC() {
             isPackaged: app.isPackaged,
             version: app.getVersion(),
         };
+    });
+
+    // === SAVE FILE: Hiển thị dialog chọn nơi lưu → ghi file → mở file ===
+    ipcMain.handle('save-file-dialog', async (event, options) => {
+        // options: { fileName, fileData (base64), fileType }
+        const { fileName, fileData, fileType } = options;
+        
+        const filters = [];
+        if (fileType === 'docx' || fileType === 'word') {
+            filters.push({ name: 'Word Document', extensions: ['docx'] });
+        } else if (fileType === 'pdf') {
+            filters.push({ name: 'PDF Document', extensions: ['pdf'] });
+        }
+        filters.push({ name: 'All Files', extensions: ['*'] });
+
+        const result = await dialog.showSaveDialog(mainWindow, {
+            title: 'Lưu tài liệu',
+            defaultPath: path.join(app.getPath('documents'), fileName),
+            filters: filters,
+            properties: ['showOverwriteConfirmation'],
+        });
+
+        if (result.canceled || !result.filePath) {
+            return { success: false, canceled: true };
+        }
+
+        try {
+            // Ghi file từ base64 data
+            const buffer = Buffer.from(fileData, 'base64');
+            fs.writeFileSync(result.filePath, buffer);
+            
+            // Tự động mở file bằng ứng dụng mặc định (Word)
+            shell.openPath(result.filePath).then(err => {
+                if (err) console.warn('[Save] Cannot open file:', err);
+            });
+
+            return { success: true, filePath: result.filePath };
+        } catch (err) {
+            console.error('[Save] Error writing file:', err);
+            return { success: false, error: err.message };
+        }
     });
 }
 

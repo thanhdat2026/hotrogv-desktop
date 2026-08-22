@@ -2304,14 +2304,49 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
 // Sanitize filename: remove illegal characters for OS file systems
 const sanitizeFileName = (name: string): string => {
     if (!name) return "Tai_lieu";
-    return name.replace(/[\\/:*?"<>|]/g, '_').replace(/\s{2,}/g, ' ').trim().substring(0, 200);
+    // Loại bỏ ký tự không hợp lệ cho tên file, giữ dấu tiếng Việt, thay dấu chấm thừa
+    return name
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .replace(/\.{2,}/g, '.') // Nhiều dấu chấm liên tiếp → 1 dấu
+        .replace(/\s{2,}/g, ' ')
+        .trim()
+        .substring(0, 200);
+};
+
+// === ELECTRON-AWARE SAVE: Chọn nơi lưu + tự mở file ===
+// Web: dùng saveAs (download qua browser)
+// Electron: dùng native Save As dialog → ghi file → mở bằng Word
+const smartSaveFile = async (blob: Blob, fileName: string): Promise<void> => {
+    const electronAPI = (window as any).electronAPI;
+    
+    if (electronAPI && electronAPI.saveFile) {
+        // === ELECTRON MODE: Native Save As dialog ===
+        // Convert Blob → base64
+        const arrayBuffer = await blob.arrayBuffer();
+        const base64 = btoa(
+            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        
+        const result = await electronAPI.saveFile(fileName, base64, 'docx');
+        
+        if (result.success) {
+            console.log('[Electron] File saved:', result.filePath);
+        } else if (!result.canceled) {
+            throw new Error(result.error || 'Không thể lưu file');
+        }
+        // Nếu canceled → không throw, không làm gì
+    } else {
+        // === WEB MODE: Download qua browser ===
+        saveAs(blob, fileName);
+    }
 };
 
 export const downloadSHCMDocument = async (data: SHCMData) => {
     try {
         const doc = generateSHCMDoc(data);
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, `So_SHCM_${sanitizeFileName(data.groupName)}_${sanitizeFileName(data.academicYear)}.docx`);
+        const fileName = `So_SHCM_${sanitizeFileName(data.groupName)}_${sanitizeFileName(data.academicYear)}.docx`;
+        await smartSaveFile(blob, fileName);
     } catch (error) {
         console.error("Download SHCM Error:", error);
         alert("Lỗi khi tạo file Word SHCM. Vui lòng thử lại.");
@@ -2322,7 +2357,8 @@ export const downloadWordDocument = async (data: LessonPlanResponse, profile?: T
     try {
         const doc = generateLessonPlanDoc(data, profile);
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, `${sanitizeFileName(data.weekName || data.topic)}.docx`);
+        const fileName = `${sanitizeFileName(data.weekName || data.topic)}.docx`;
+        await smartSaveFile(blob, fileName);
     } catch (error) {
         console.error("Download Lesson Plan Error:", error);
         throw new Error("Lỗi khi tạo file Word giáo án. " + (error instanceof Error ? error.message : ""));
@@ -2339,7 +2375,8 @@ export const downloadExamDocument = async (
     try {
         const doc = generateExamDoc(data, input, generatedPdfImages, profile);
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, customFileName ? `${sanitizeFileName(customFileName)}.docx` : `${sanitizeFileName(data.title)}.docx`);
+        const fileName = customFileName ? `${sanitizeFileName(customFileName)}.docx` : `${sanitizeFileName(data.title)}.docx`;
+        await smartSaveFile(blob, fileName);
     } catch (error) {
         console.error("Download Exam Error:", error);
         throw new Error("Lỗi khi tạo file Word đề thi. " + (error instanceof Error ? error.message : ""));

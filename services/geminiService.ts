@@ -32,33 +32,19 @@ let _routerConfig: {
 };
 let _routerConfigFetched = false;
 
-// Lấy config 9Router — Hỗ trợ cả Web (Vercel) và Electron (độc lập)
+// Lấy config 9Router — Ưu tiên remote (dynamic), fallback build-time (static)
+// Electron: gọi hotrogv.thaydat.edu.vn/api/router-config → sếp đổi config trên Vercel → tất cả máy tự cập nhật
+// Web: gọi /api/router-config (same origin Vercel)
 export const fetchRouterConfig = async (): Promise<void> => {
-    // === ELECTRON MODE: Sử dụng config build-time, không cần server ===
     const isElectron = !!(window as any).electronAPI;
-    if (isElectron) {
-        // Config đã được baked vào lúc build qua VITE_9ROUTER_* env vars
-        _routerConfig.available = !!(_routerConfig.url && _routerConfig.key);
-        if (_routerConfig.available) {
-            // Trong Electron, dùng danh sách models mặc định (hoặc từ env)
-            const envModels = (import.meta.env.VITE_9ROUTER_MODELS || '').trim();
-            if (envModels) {
-                _routerConfig.models = envModels.split(',').map((m: string) => m.trim()).filter(Boolean);
-            }
-            console.log('[Electron] 9Router config from build-time env | URL:', _routerConfig.url);
-            restoreSelectedModel();
-            _notifyAISource('9router', '', _routerConfig.model);
-        }
-        _routerConfigFetched = true;
-        if (!_routerConfig.available && getGeminiApiKey()) {
-            _notifyAISource('gemini', '', '');
-        }
-        return;
-    }
+    
+    // Xác định URL config: Electron dùng absolute URL, Web dùng relative
+    const configUrl = isElectron 
+        ? 'https://hotrogv.thaydat.edu.vn/api/router-config'
+        : '/api/router-config';
 
-    // === WEB MODE: Lấy config từ Vercel serverless API ===
     try {
-        const response = await fetch('/api/router-config', { 
+        const response = await fetch(configUrl, { 
             cache: 'no-store',
             signal: AbortSignal.timeout(5000)
         });
@@ -71,20 +57,32 @@ export const fetchRouterConfig = async (): Promise<void> => {
                 _routerConfig.models = data.models;
             }
             _routerConfig.available = !!(data.url && data.key);
-            console.log('9Router config loaded | Models:', _routerConfig.models.join(', '));
-            // Khôi phục model GV đã chọn từ localStorage (nếu có)
+            console.log(`[${isElectron ? 'Electron' : 'Web'}] 9Router config loaded from server | Models:`, _routerConfig.models.join(', '));
             restoreSelectedModel();
-            // Thông báo trạng thái kết nối ngay khi load xong (để UI hiển thị sớm)
             if (_routerConfig.available) {
                 _notifyAISource('9router', '', _routerConfig.model);
             }
+            _routerConfigFetched = true;
+            return; // Thành công → không cần fallback
         }
     } catch (e) {
-        _routerConfig.available = !!(_routerConfig.url && _routerConfig.key);
+        console.warn(`[${isElectron ? 'Electron' : 'Web'}] Remote config failed, using build-time fallback`);
     }
+
+    // === FALLBACK: Dùng build-time env vars (khi offline hoặc Vercel down) ===
+    if (isElectron) {
+        const envModels = (import.meta.env.VITE_9ROUTER_MODELS || '').trim();
+        if (envModels) {
+            _routerConfig.models = envModels.split(',').map((m: string) => m.trim()).filter(Boolean);
+        }
+    }
+    _routerConfig.available = !!(_routerConfig.url && _routerConfig.key);
     _routerConfigFetched = true;
-    // Nếu không có 9Router nhưng có Gemini key → báo dùng Gemini
-    if (!_routerConfig.available && getGeminiApiKey()) {
+    
+    if (_routerConfig.available) {
+        restoreSelectedModel();
+        _notifyAISource('9router', '', _routerConfig.model);
+    } else if (getGeminiApiKey()) {
         _notifyAISource('gemini', '', '');
     }
 };
