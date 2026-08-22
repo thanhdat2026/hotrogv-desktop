@@ -75,7 +75,7 @@ const App = () => {
   const [showHistoryPanel, setShowHistoryPanel] = useState(false);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
-  const [showTemplates, setShowTemplates] = useState(false);
+
   const [chatMessages, setChatMessages] = useState<{role: 'user'|'ai'; text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(false);
@@ -86,11 +86,7 @@ const App = () => {
   const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [editedLessonMarkdown, setEditedLessonMarkdown] = useState('');
   
-  // A4: Regenerate section
-  const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
-  
-  // B4: Share
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
   
   // C2: Edu Plan
   const [eduPlanInput, setEduPlanInput] = useState({ semester: 'Cả năm', year: '2025-2026', notes: '' });
@@ -107,6 +103,21 @@ const App = () => {
   // Refresh history khi cần
   const refreshHistory = useCallback(() => setHistoryItems(getHistory()), []);
   useEffect(() => { refreshHistory(); }, [refreshHistory]);
+
+  // Chat send helper
+  const sendChat = useCallback(async () => {
+    if (!chatInput.trim()) return;
+    const q = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, {role: 'user', text: q}]);
+    try {
+        const { callAI } = await import('./services/geminiService');
+        const answer = await callAI(`Bạn là trợ lý AI chuyên về giáo dục Việt Nam (GDPT 2018, CV5512). Hãy trả lời ngắn gọn, hữu ích cho giáo viên.\n\nCâu hỏi: ${q}`);
+        setChatMessages(prev => [...prev, {role: 'ai', text: answer || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'}]);
+    } catch {
+        setChatMessages(prev => [...prev, {role: 'ai', text: '❌ Lỗi kết nối AI. Vui lòng thử lại.'}]);
+    }
+  }, [chatInput]);
 
   // Dark mode toggle
   useEffect(() => {
@@ -720,18 +731,25 @@ const App = () => {
 
 
   const handleTabChange = (newTab: TabType) => {
-    // Warn if there are unsaved results
+    // Info-only tabs don't destroy existing results
+    const infoTabs: TabType[] = ['dashboard', 'comments', 'edu-plan', 'guide'];
+    const isInfoTab = infoTabs.includes(newTab);
+    
+    // Warn if switching between work tabs and there are unsaved results
     const hasResults = lessonResult || worksheetResult || examResult || shcmResult;
-    if (hasResults && newTab !== activeTab) {
+    if (hasResults && !isInfoTab && newTab !== activeTab) {
         const ok = confirm("Bạn đang có kết quả chưa tải xuống. Chuyển tab sẽ mất kết quả hiện tại. Bạn có chắc chắn muốn chuyển?");
         if (!ok) return;
     }
     setActiveTab(newTab);
-    // Reset results when switching tabs to avoid showing stale data
-    setLessonResult(null);
-    setWorksheetResult(null);
-    setExamResult(null);
-    setShcmResult(null);
+    
+    // Only reset results when switching to work tabs (not info tabs)
+    if (!isInfoTab) {
+        setLessonResult(null);
+        setWorksheetResult(null);
+        setExamResult(null);
+        setShcmResult(null);
+    }
 
     // If the new tab is not PDF-related, clear all PDF state
     if (newTab !== 'converter' && newTab !== 'similar-exam') {
@@ -2797,37 +2815,12 @@ useEffect(() => {
                     <input 
                         value={chatInput} 
                         onChange={e => setChatInput(e.target.value)}
-                        onKeyDown={async e => {
-                            if (e.key === 'Enter' && chatInput.trim()) {
-                                const q = chatInput.trim();
-                                setChatInput('');
-                                setChatMessages(prev => [...prev, {role: 'user', text: q}]);
-                                try {
-                                    const { callAI } = await import('./services/geminiService');
-                                    const answer = await callAI(`Bạn là trợ lý AI chuyên về giáo dục Việt Nam (GDPT 2018, CV5512). Hãy trả lời ngắn gọn, hữu ích cho giáo viên.\n\nCâu hỏi: ${q}`);
-                                    setChatMessages(prev => [...prev, {role: 'ai', text: answer || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'}]);
-                                } catch {
-                                    setChatMessages(prev => [...prev, {role: 'ai', text: '❌ Lỗi kết nối AI. Vui lòng thử lại.'}]);
-                                }
-                            }
-                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
                         placeholder="Hỏi về phương pháp dạy học..." 
                         className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button 
-                        onClick={async () => {
-                            if (!chatInput.trim()) return;
-                            const q = chatInput.trim();
-                            setChatInput('');
-                            setChatMessages(prev => [...prev, {role: 'user', text: q}]);
-                            try {
-                                const { callAI } = await import('./services/geminiService');
-                                const answer = await callAI(`Bạn là trợ lý AI chuyên về giáo dục Việt Nam (GDPT 2018, CV5512). Hãy trả lời ngắn gọn, hữu ích cho giáo viên.\n\nCâu hỏi: ${q}`);
-                                setChatMessages(prev => [...prev, {role: 'ai', text: answer || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'}]);
-                            } catch {
-                                setChatMessages(prev => [...prev, {role: 'ai', text: '❌ Lỗi kết nối AI. Vui lòng thử lại.'}]);
-                            }
-                        }}
+                        onClick={sendChat}
                         className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-colors"
                     >
                         <Sparkles className="w-4 h-4" />
@@ -4211,7 +4204,7 @@ useEffect(() => {
                                         <button
                                             onClick={() => {
                                                 try {
-                                                    const text = `📝 GIÁO ÁN: ${lessonResult!.topic}\n🏫 ${teacherProfile.schoolName || ''}\n👨‍🏫 ${teacherProfile.fullName || ''}\n\n${lessonResult!.fullMarkdown}`;
+                                                    const text = `📝 GIÁO ÁN: ${lessonResult!.topic}\n🏫 ${teacherProfile.schoolName || ''}\n👨‍🏫 ${teacherProfile.teacherName || ''}\n\n${lessonResult!.fullMarkdown}`;
                                                     navigator.clipboard.writeText(text);
                                                     alert('Đã sao chép nội dung giáo án! Bạn có thể dán vào Zalo, Email để chia sẻ.');
                                                 } catch { alert('Không thể sao chép. Hãy tải Word và gửi file.'); }
