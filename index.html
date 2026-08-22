@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trợ lý dạy học số - thaydat.edu.vn</title>
+    <meta name="description" content="Ứng dụng AI hỗ trợ giáo viên soạn Kế hoạch bài dạy, Đề thi, Phiếu bài tập, Sổ SHCM chuẩn GDPT 2018. Tích hợp năng lực số CV 3456, xuất Word chuẩn." />
+    <meta name="keywords" content="soạn giáo án, đề thi, AI giáo dục, GDPT 2018, giáo viên, Gemini AI, thaydat" />
+    <meta property="og:title" content="Trợ lý dạy học số - thaydat.edu.vn" />
+    <meta property="og:description" content="Ứng dụng AI miễn phí hỗ trợ giáo viên soạn giáo án, đề thi, SHCM chuẩn chương trình GDPT 2018." />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+      }
+      
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Markdown Document Styling */
+      .markdown-content {
+        font-family: 'Times New Roman', serif;
+        line-height: 1.6;
+        color: #000;
+      }
+      .markdown-content h1 { font-size: 1.8rem; font-weight: bold; text-align: center; margin-top: 1.5rem; margin-bottom: 1rem; color: #1e3a8a; text-transform: uppercase; }
+      .markdown-content h2 { font-size: 1.4rem; font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #1e40af; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+      .markdown-content h3 { font-size: 1.2rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; color: #374151; }
+      .markdown-content h4 { font-size: 1.1rem; font-weight: 600; font-style: italic; margin-top: 0.75rem; margin-bottom: 0.25rem; }
+      .markdown-content p { margin-bottom: 0.75rem; text-align: justify; }
+      .markdown-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+      .markdown-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+      .markdown-content li { margin-bottom: 0.25rem; }
+      
+      /* Table Styling — Đồng bộ với Word output (TABLE_HEADER_BG = #D9E2F3) */
+      .markdown-content table { 
+        width: 100% !important; 
+        border-collapse: collapse !important; 
+        margin-top: 0.75rem;
+        margin-bottom: 1.5rem; 
+        font-size: 0.9rem; 
+        line-height: 1.4;
+        border: 2px solid #374151 !important;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+      .markdown-content th, .markdown-content td { 
+        border: 1px solid #6b7280 !important; 
+        padding: 0.5rem 0.65rem !important; 
+        vertical-align: top;
+        text-align: left;
+      }
+      .markdown-content th { 
+        background-color: #D9E2F3 !important; /* Matches Word TABLE_HEADER_BG */
+        font-weight: 700 !important; 
+        text-align: center; 
+        color: #1a365d;
+        font-size: 0.85rem;
+        text-transform: none;
+        border-bottom: 2px solid #374151 !important;
+      }
+      .markdown-content tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+      }
+      .markdown-content tbody tr:hover {
+        background-color: #eef2ff;
+      }
+      /* Ma trận đề thi: cột đầu rộng hơn */
+      .markdown-content td:first-child {
+        font-weight: 500;
+      }
+
+      /* Blockquote — Trích dẫn thơ/văn bản (Ngữ văn) */
+      .markdown-content blockquote {
+        border-left: 4px solid #93c5fd;
+        padding: 0.5rem 1rem;
+        margin: 0.75rem 0 0.75rem 1rem;
+        background-color: #f0f9ff;
+        font-style: italic;
+        color: #1e40af;
+        border-radius: 0 4px 4px 0;
+      }
+      .markdown-content blockquote p {
+        margin-bottom: 0.25rem;
+      }
+      .markdown-content hr {
+        border: none;
+        border-top: 1px solid #d1d5db;
+        margin: 1.5rem 0;
+      }
+      .markdown-content strong {
+        font-weight: 700;
+      }
+      
+      /* Input Animations */
+      .input-transition {
+        transition: all 0.2s ease-in-out;
+      }
+      .input-transition:focus-within {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      /* === RESPONSIVE NAVIGATION TABS === */
+      .nav-tabs-scroll {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+        gap: 2px;
+      }
+      .nav-tabs-scroll::-webkit-scrollbar {
+        display: none;
+      }
+      .nav-tabs-scroll > button {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* === AI STATUS BAR === */
+      .ai-status-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+      .ai-status-bar.status-9router {
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+      }
+      .ai-status-bar.status-gemini {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+      }
+      .ai-status-bar.status-fallback {
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        color: #92400e;
+        border: 1px solid #fcd34d;
+      }
+
+      /* === LOADING PROGRESS BAR === */
+      .loading-progress {
+        height: 3px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7, #6366f1);
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite linear;
+        border-radius: 2px;
+      }
+      @keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* === LABEL & INPUT UTILITIES === */
+      .label-text {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        letter-spacing: 0.02em;
+      }
+      .input-field {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 0.625rem;
+        font-size: 0.875rem;
+        color: #1e293b;
+        background: white;
+        transition: all 0.2s;
+      }
+      .input-field:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+      }
+      .input-field::placeholder {
+        color: #94a3b8;
+      }
+
+      /* === MOBILE RESPONSIVE === */
+      @media (max-width: 640px) {
+        .markdown-content h1 { font-size: 1.4rem; }
+        .markdown-content h2 { font-size: 1.2rem; }
+        .markdown-content h3 { font-size: 1.05rem; }
+        .markdown-content table { font-size: 0.8rem; display: block; overflow-x: auto; }
+        .markdown-content th, .markdown-content td { padding: 0.3rem 0.4rem !important; white-space: nowrap; }
+      }
+
+      /* === SMOOTH PAGE TRANSITIONS === */
+      .fade-slide-in {
+        animation: fadeSlideIn 0.3s ease-out;
+      }
+      @keyframes fadeSlideIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

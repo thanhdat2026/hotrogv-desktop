@@ -1,0 +1,99 @@
+{
+  "name": "tro-ly-day-hoc-so",
+  "productName": "Trợ lý dạy học số",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "author": {
+    "name": "ThayDat",
+    "url": "https://thaydat.edu.vn"
+  },
+  "description": "Ứng dụng AI hỗ trợ giáo viên soạn Kế hoạch bài dạy, Đề thi, Phiếu bài tập, Sổ SHCM",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "vite build && electron .",
+    "electron:build": "vite build && electron-builder --win",
+    "electron:build:dir": "vite build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "@google/genai": "^1.34.0",
+    "@types/turndown": "^5.0.6",
+    "docx": "^9.5.1",
+    "file-saver": "^2.0.5",
+    "katex": "^0.16.27",
+    "lucide-react": "^0.562.0",
+    "mammoth": "1.6.0",
+    "pdfjs-dist": "3.11.174",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
+    "electron-updater": "^6.8.9",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  },
+  "build": {
+    "appId": "vn.edu.thaydat.hotrogv",
+    "productName": "Trợ lý dạy học số",
+    "artifactName": "TroLyDayHocSo-Setup-${version}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*.cjs",
+      "electron/**/*.png",
+      "electron/**/*.ico",
+      "electron/**/*.svg"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/icon.svg"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "Trợ lý dạy học số",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "thanhdat2026",
+        "repo": "hotrogv-desktop",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.25.12": true,
+    "protobufjs@7.5.5": true
+  }
+}
