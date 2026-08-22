@@ -29,14 +29,14 @@ function createWindow() {
         minWidth: 900,
         minHeight: 600,
         title: APP_NAME,
-        icon: path.join(__dirname, 'icon.png'),
+        icon: path.join(__dirname, 'icon.svg'),
         autoHideMenuBar: true, // Ẩn menu bar mặc định
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,
-            webSecurity: true,
+            webSecurity: false, // Cho phép fetch từ file:// tới https:// (9Router, Vercel API)
         },
         show: false, // Không hiển thị ngay → chờ ready-to-show
         backgroundColor: '#f8fafc', // Cùng màu với app
@@ -89,7 +89,7 @@ function createWindow() {
 // ==================== SYSTEM TRAY ====================
 function createTray() {
     // Tạo tray icon (sử dụng icon nhỏ 16x16)
-    const iconPath = path.join(__dirname, 'icon.png');
+    const iconPath = path.join(__dirname, 'icon.svg');
     let trayIcon;
     try {
         trayIcon = nativeImage.createFromPath(iconPath);
