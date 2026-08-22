@@ -62,3 +62,58 @@ html.dark .hover\:bg-slate-50:hover,
 html.dark .hover\:bg-slate-100:hover {
     background-color: #334155 !important;
 }
+
+/* Gradient backgrounds for new tabs */
+html.dark .bg-gradient-to-r.from-purple-50,
+html.dark .bg-gradient-to-r.from-fuchsia-50,
+html.dark .bg-gradient-to-r.from-cyan-50,
+html.dark .bg-gradient-to-r.from-sky-50,
+html.dark .bg-gradient-to-r.from-amber-50,
+html.dark .bg-gradient-to-r.from-orange-50 {
+    background: #1e293b !important;
+}
+
+/* Light color backgrounds in dark mode */
+html.dark .bg-blue-50,
+html.dark .bg-indigo-50,
+html.dark .bg-purple-50,
+html.dark .bg-pink-50,
+html.dark .bg-emerald-50,
+html.dark .bg-amber-50,
+html.dark .bg-green-50,
+html.dark .bg-cyan-50,
+html.dark .bg-red-50,
+html.dark .bg-yellow-50,
+html.dark .bg-orange-50 {
+    background-color: #1e293b !important;
+}
+
+/* Prose (markdown content) in dark mode */
+html.dark .prose {
+    color: #e2e8f0;
+}
+html.dark .prose h1,
+html.dark .prose h2,
+html.dark .prose h3,
+html.dark .prose h4,
+html.dark .prose strong {
+    color: #f1f5f9;
+}
+html.dark .prose td,
+html.dark .prose th {
+    border-color: #475569;
+    color: #e2e8f0;
+}
+html.dark .prose table {
+    border-color: #475569;
+}
+
+/* Slide panel overlay */
+html.dark .bg-black\/30 {
+    background-color: rgba(0,0,0,0.5);
+}
+
+/* Fixed chat panel */
+html.dark .fixed .bg-white {
+    background-color: #1e293b !important;
+}

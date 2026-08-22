@@ -2482,7 +2482,7 @@ useEffect(() => {
                                             const result = await callAIFn(
                                                 `Bạn là giáo viên chủ nhiệm lớp ${commentInput.grade || '6'}. Hãy viết nhận xét cuối kỳ cho từng học sinh dưới đây. Mỗi nhận xét 3-4 câu, phong cách ${commentInput.style}, đúng văn phong sư phạm Việt Nam. Không lặp lại cấu trúc câu giữa các HS.\n\nDanh sách:\n${commentInput.students}\n\nFormat output:\n**Họ tên HS 1:** Nhận xét...\n**Họ tên HS 2:** Nhận xét...\n(tiếp tục cho tất cả HS)`
                                             );
-                                            setCommentResult(result);
+                                            if (result) { setCommentResult(result); } else { alert('Không thể kết nối AI. Vui lòng kiểm tra cấu hình 9Router hoặc API Key Gemini.'); }
                                         } catch (e) { alert('Lỗi tạo nhận xét: ' + (e as any).message); }
                                         setLoading(false);
                                     }}
@@ -2499,9 +2499,17 @@ useEffect(() => {
                             <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
                                 <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                                     <h3 className="font-bold text-slate-800">Kết quả nhận xét</h3>
-                                    <button onClick={() => { navigator.clipboard.writeText(commentResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
-                                        <Copy className="w-4 h-4" /> Sao chép
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => { navigator.clipboard.writeText(commentResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
+                                            <Copy className="w-4 h-4" /> Sao chép
+                                        </button>
+                                        <button onClick={() => {
+                                            const blob = new Blob([commentResult], { type: 'text/plain;charset=utf-8' });
+                                            saveAs(blob, `Nhan_xet_HS_${commentInput.grade || 'lop'}.txt`);
+                                        }} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                                            <Download className="w-4 h-4" /> Tải file
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-6 prose prose-sm max-w-none">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{commentResult}</ReactMarkdown>
@@ -2561,7 +2569,7 @@ useEffect(() => {
                                             const result = await callAIFn(
                                                 `Bạn là chuyên gia giáo dục Việt Nam. Hãy soạn KẾ HOẠCH GIÁO DỤC môn ${subject} lớp ${grade} năm học ${eduPlanInput.year}, phạm vi: ${eduPlanInput.semester}.\n\nTheo CV5512/BGDĐT và GDPT 2018, bao gồm:\n\n## I. MỤC TIÊU\n### 1. Về phẩm chất\n### 2. Về năng lực chung\n### 3. Về năng lực đặc thù\n\n## II. PHÂN PHỐI CHƯƠNG TRÌNH\nBảng Markdown gồm: STT | Tuần | Tên bài/chủ đề | Số tiết | Thiết bị | Ghi chú\n(Liệt kê đầy đủ 35 tuần cho cả năm, hoặc 18 tuần cho HK1, 17 tuần cho HK2)\n\n## III. THIẾT BỊ DẠY HỌC\nDanh sách thiết bị theo từng chương\n\n## IV. KIỂM TRA, ĐÁNH GIÁ\n- Đánh giá thường xuyên\n- Đánh giá định kỳ (giữa kỳ, cuối kỳ)\n- Ma trận đề kiểm tra\n\n${eduPlanInput.notes ? `\nYÊU CẦU BỔ SUNG: ${eduPlanInput.notes}` : ''}\n\nViết đầy đủ, chi tiết, đúng format Markdown.`
                                             );
-                                            setEduPlanResult(result);
+                                            if (result) { setEduPlanResult(result); } else { alert('Không thể kết nối AI. Vui lòng kiểm tra cấu hình.'); }
                                         } catch (e) { alert('Lỗi: ' + (e as any).message); }
                                         setLoading(false);
                                     }}
@@ -2578,9 +2586,17 @@ useEffect(() => {
                             <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
                                 <div className="bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                                     <h3 className="font-bold text-slate-800">Kế hoạch giáo dục — {subject}</h3>
-                                    <button onClick={() => { navigator.clipboard.writeText(eduPlanResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
-                                        <Copy className="w-4 h-4" /> Sao chép
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => { navigator.clipboard.writeText(eduPlanResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
+                                            <Copy className="w-4 h-4" /> Sao chép
+                                        </button>
+                                        <button onClick={() => {
+                                            const blob = new Blob([eduPlanResult], { type: 'text/plain;charset=utf-8' });
+                                            saveAs(blob, `KHGD_${subject}_${eduPlanInput.year}.txt`);
+                                        }} className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-800 font-medium">
+                                            <Download className="w-4 h-4" /> Tải file
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-6 prose prose-sm max-w-none overflow-x-auto">
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{eduPlanResult}</ReactMarkdown>
@@ -2709,14 +2725,14 @@ useEffect(() => {
                     )}
                     
                     <div className="p-4 space-y-3">
-                        <p className="text-xs text-slate-400">{filterQuestions({...qbFilter, subject}).length} câu hỏi</p>
-                        {filterQuestions({...qbFilter, subject}).length === 0 ? (
+                        <p className="text-xs text-slate-400">{filterQuestions({...qbFilter}).length} câu hỏi</p>
+                        {filterQuestions({...qbFilter}).length === 0 ? (
                             <div className="text-center py-12 text-slate-400">
                                 <BrainCircuit className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p className="font-medium">Chưa có câu hỏi</p>
                                 <p className="text-sm">Bấm "+ Thêm" để lưu câu hỏi hay vào ngân hàng</p>
                             </div>
-                        ) : filterQuestions({...qbFilter, subject}).map(q => (
+                        ) : filterQuestions({...qbFilter}).map(q => (
                             <div key={q.id} className="bg-slate-50 rounded-xl p-4 border border-slate-100 group">
                                 <div className="flex items-start justify-between mb-2">
                                     <div className="flex gap-1.5 flex-wrap">
@@ -2798,6 +2814,24 @@ useEffect(() => {
                         placeholder="Hỏi về phương pháp dạy học..." 
                         className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    <button 
+                        onClick={async () => {
+                            if (!chatInput.trim()) return;
+                            const q = chatInput.trim();
+                            setChatInput('');
+                            setChatMessages(prev => [...prev, {role: 'user', text: q}]);
+                            try {
+                                const { callAI } = await import('./services/geminiService');
+                                const answer = await callAI(`Bạn là trợ lý AI chuyên về giáo dục Việt Nam (GDPT 2018, CV5512). Hãy trả lời ngắn gọn, hữu ích cho giáo viên.\n\nCâu hỏi: ${q}`);
+                                setChatMessages(prev => [...prev, {role: 'ai', text: answer || 'Xin lỗi, tôi không thể trả lời câu hỏi này.'}]);
+                            } catch {
+                                setChatMessages(prev => [...prev, {role: 'ai', text: '❌ Lỗi kết nối AI. Vui lòng thử lại.'}]);
+                            }
+                        }}
+                        className="bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition-colors"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
         )}
@@ -4177,13 +4211,10 @@ useEffect(() => {
                                         <button
                                             onClick={() => {
                                                 try {
-                                                    const data = { type: 'lesson', result: lessonResult, teacher: teacherProfile };
-                                                    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-                                                    const url = `${window.location.origin}${window.location.pathname}?share=${encoded.substring(0, 2000)}`;
-                                                    navigator.clipboard.writeText(url);
-                                                    setShareUrl(url);
-                                                    alert('Đã sao chép link chia sẻ!');
-                                                } catch { alert('Dữ liệu quá lớn để chia sẻ qua link. Hãy tải Word và gửi file.'); }
+                                                    const text = `📝 GIÁO ÁN: ${lessonResult!.topic}\n🏫 ${teacherProfile.schoolName || ''}\n👨‍🏫 ${teacherProfile.fullName || ''}\n\n${lessonResult!.fullMarkdown}`;
+                                                    navigator.clipboard.writeText(text);
+                                                    alert('Đã sao chép nội dung giáo án! Bạn có thể dán vào Zalo, Email để chia sẻ.');
+                                                } catch { alert('Không thể sao chép. Hãy tải Word và gửi file.'); }
                                             }}
                                             className="text-xs px-2 py-1 rounded border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 flex items-center gap-1"
                                         >
