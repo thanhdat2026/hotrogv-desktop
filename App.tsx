@@ -441,7 +441,8 @@ const App = () => {
               setLoadingText
           );
           if (result) {
-              setShcmResult({
+              // Auto-save SHCM to history (save the full enriched result so restore works for download)
+              const fullShcm = {
                   ...result,
                   schoolName: shcmInput.schoolName,
                   groupName: shcmInput.groupName,
@@ -451,9 +452,9 @@ const App = () => {
                   vicePrincipalName: shcmInput.vicePrincipalName,
                   secretaryName: shcmInput.secretaryName,
                   teachers: shcmInput.teachers
-              });
-              // Auto-save SHCM to history
-              addToHistory({ type: 'shcm', title: `SHCM ${shcmInput.groupName} - ${shcmInput.academicYear}`, subject: shcmInput.groupName, grade: '', data: result, preview: `${shcmInput.selectedMonths.length || 'Cả năm'} tháng` });
+              };
+              setShcmResult(fullShcm);
+              addToHistory({ type: 'shcm', title: `SHCM ${shcmInput.groupName} - ${shcmInput.academicYear}`, subject: shcmInput.groupName, grade: '', data: fullShcm, preview: `${shcmInput.selectedMonths.length || 'Cả năm'} tháng` });
               refreshHistory();
           }
       } catch (err: any) {
