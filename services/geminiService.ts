@@ -2375,6 +2375,20 @@ export const generateSHCM = async (
     const teacherNames = teachers.length > 0 ? teachers.map(t => t.name).join(', ') : "Giáo viên trong tổ";
     const customTopicsInstruction = customTopics ? `\nCHÚ Ý ĐẶC BIỆT CÁC CHỦ ĐỀ SAU (NGƯỜI DÙNG CHỈ ĐỊNH):\n${customTopics}\n` : "";
 
+    // Tự nhận diện cấp học từ tên trường
+    const schoolNameUpper = schoolName.toUpperCase();
+    let schoolLevel = 'THCS';
+    let gradeLevels = 'KHỐI LỚP 6, 7, 8, 9';
+    if (schoolNameUpper.includes('TIỂU HỌC') || (schoolNameUpper.includes('TH ') && !schoolNameUpper.includes('THCS') && !schoolNameUpper.includes('THPT'))) {
+        schoolLevel = 'TIỂU HỌC'; gradeLevels = 'KHỐI LỚP 1, 2, 3, 4, 5';
+    } else if (schoolNameUpper.includes('THPT') || schoolNameUpper.includes('PHỔ THÔNG')) {
+        schoolLevel = 'THPT'; gradeLevels = 'KHỐI LỚP 10, 11, 12';
+    } else if (schoolNameUpper.includes('TH&THCS') || schoolNameUpper.includes('TH-THCS')) {
+        schoolLevel = 'TH&THCS'; gradeLevels = 'KHỐI LỚP 1-9 (tùy bộ môn)';
+    } else if (schoolNameUpper.includes('THCS&THPT') || schoolNameUpper.includes('THCS-THPT')) {
+        schoolLevel = 'THCS&THPT'; gradeLevels = 'KHỐI LỚP 6-12 (tùy bộ môn)';
+    }
+
     const promptText = `
     ĐÓNG VAI: Chuyên gia giáo dục trung học, nhóm trưởng chuyên môn trường phổ thông.
     NHIỆM VỤ: Tạo nội dung biên bản sinh hoạt chuyên môn (Sổ SHCM) cho tổ/nhóm ${groupName} - Trường ${schoolName}, năm học ${academicYear}, môn ${subject}.
@@ -2413,7 +2427,7 @@ export const generateSHCM = async (
     3. ${monthConstraint}
     4. Trả về cấu trúc JSON đúng định dạng theo schema.
     5. TUYỆT ĐỐI TRÁNH tạo ngày họp trùng vào Chủ nhật (Sunday). Hãy đảm bảo các ngày được tạo rơi vào thứ 2, 3, 4, 5, 6, 7. Tạo ngày giả định theo năm học ${academicYear}. ĐỊNH DẠNG NGÀY THÁNG BẮT BUỘC LÀ: DD/MM/YYYY (ví dụ: 15/09/2025).
-    6. NỘI DUNG BIÊN BẢN: Trình bày định dạng Markdown. Đây là phần thảo luận chuyên môn. LƯU Ý CAO NHẤT: ĐÂY LÀ CHƯƠNG TRÌNH THCS, CHỈ CÓ CÁC KHỐI LỚP 6, 7, 8, 9. MỌI KIẾN THỨC VÀ BÀI DẠY VÍ DỤ TRONG BIÊN BẢN GHI RA PHẢI THUỘC CHƯƠNG TRÌNH CẤP THCS. Đội ngũ GV thảo luận phải phù hợp với đặc thù bộ môn ${subject}. Yêu cầu độ dài: khoảng ${contentLength} chữ cho mỗi biên bản (phù hợp theo bộ môn). Trực tiếp đi vào cuộc họp (Không in lại các tiêu đề cũng như 1. Thời gian, 2. Thành phần: vì hệ thống đã tự in ra). LƯU Ý ĐẶC BIỆT: TUYỆT ĐỐI KHÔNG DÙNG TỪ "Tổ trưởng", HÃY DÙNG TỪ "Nhóm trưởng" HOẶC "Chủ trì cuộc họp" để gọi người điều hành cuộc họp.
+    6. NỘI DUNG BIÊN BẢN: Trình bày định dạng Markdown. Đây là phần thảo luận chuyên môn. LƯU Ý CAO NHẤT: ĐÂY LÀ CHƯƠNG TRÌNH CẤP ${schoolLevel}, CHỈ CÓ CÁC ${gradeLevels}. MỌI KIẾN THỨC VÀ BÀI DẠY VÍ DỤ TRONG BIÊN BẢN GHI RA PHẢI THUỘC CHƯƠNG TRÌNH CẤP ${schoolLevel}. Đội ngũ GV thảo luận phải phù hợp với đặc thù bộ môn ${subject}. Yêu cầu độ dài: khoảng ${contentLength} chữ cho mỗi biên bản (phù hợp theo bộ môn). Trực tiếp đi vào cuộc họp (Không in lại các tiêu đề cũng như 1. Thời gian, 2. Thành phần: vì hệ thống đã tự in ra). LƯU Ý ĐẶC BIỆT: TUYỆT ĐỐI KHÔNG DÙNG TỪ "Tổ trưởng", HÃY DÙNG TỪ "Nhóm trưởng" HOẶC "Chủ trì cuộc họp" để gọi người điều hành cuộc họp.
        - Nêu rất chi tiết tiến trình, thảo luận, nội dung chuyên môn của cuộc họp (VD: phân tích từng bước bài học, tranh luận các phương án dạy học, đóng góp ý kiến về ma trận, các biện pháp đổi mới phương pháp dạy học cụ thể...). Dùng nhiều gạch đầu dòng và đoạn văn rõ ràng.
        - PHẢI LUÂN PHIÊN 5 trụ cột CV 4069 vào các buổi họp khác nhau (không lặp lại nội dung giống nhau ở các lần họp).
        - Ít nhất 2 buổi họp trong năm phải có hình thức NGHIÊN CỨU BÀI HỌC (dạy minh họa + quan sát + rút kinh nghiệm), theo đúng quy trình CV 4069.

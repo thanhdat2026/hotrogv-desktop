@@ -501,6 +501,10 @@ const App = () => {
       if (!shcmInput.schoolName.trim()) { alert('Vui lòng nhập Tên trường.'); return; }
       if (!shcmInput.groupName.trim()) { alert('Vui lòng nhập Tên tổ / nhóm.'); return; }
       if (!shcmInput.academicYear.trim()) { alert('Vui lòng nhập Năm học.'); return; }
+      if (!shcmInput.leaderName.trim()) { alert('Vui lòng nhập Tổ trưởng chuyên môn.'); return; }
+      if (!shcmInput.hostName.trim()) { alert('Vui lòng nhập Người chủ trì cuộc họp.'); return; }
+      if (!shcmInput.secretaryName.trim()) { alert('Vui lòng nhập Thư ký.'); return; }
+      if (!shcmInput.vicePrincipalName.trim()) { alert('Vui lòng nhập Đại diện BGH.'); return; }
       if (shcmInput.teachers.length === 0 || shcmInput.teachers.every(t => !t.name.trim())) {
           const ok = confirm('Danh sách giáo viên đang trống. AI sẽ tự tạo tên giả. Bạn có muốn tiếp tục?');
           if (!ok) return;

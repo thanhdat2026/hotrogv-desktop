@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ShadingType, PageOrientation, VerticalAlign, PageBreak, ImageRun, TableLayoutType, VerticalMergeType, TabStopType, Math as DocxMath, MathRun, MathFraction, MathRadical, MathSuperScript, MathSubScript, MathSubSuperScript, MathRoundBrackets, MathSquareBrackets, MathCurlyBrackets, MathAngledBrackets, XmlComponent, XmlAttributeComponent } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ShadingType, PageOrientation, VerticalAlign, PageBreak, ImageRun, TableLayoutType, VerticalMergeType, TabStopType, Math as DocxMath, MathRun, MathFraction, MathRadical, MathSuperScript, MathSubScript, MathSubSuperScript, MathRoundBrackets, MathSquareBrackets, MathCurlyBrackets, MathAngledBrackets, XmlComponent, XmlAttributeComponent, Footer, PageNumber, NumberFormat } from "docx";
 import type { ParagraphChild, MathComponent } from "docx";
 import saveAs from "file-saver";
 import { LessonPlanResponse, ExamResponse, ExamInput, GradeLevel, Subject, ExamHeader, TeacherProfile } from "../types";
@@ -2046,44 +2046,46 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             rows: [
                 new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Stt", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Họ và tên", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Năm sinh", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Chuyên môn", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Trình độ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Stt", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 8, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Họ và tên", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 30, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Năm sinh", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 14, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Chuyên môn", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 28, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Trình độ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 20, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
                     ],
                     tableHeader: true,
                 }),
                 ...teachers.map((t, index) => new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (index + 1).toString(), ...defaultRunProperties })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.name, ...defaultRunProperties })] })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.birthYear, ...defaultRunProperties })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.specialty, ...defaultRunProperties })] })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.degree, ...defaultRunProperties })] })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (index + 1).toString(), ...defaultRunProperties })], alignment: AlignmentType.CENTER })], width: { size: 8, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.name, ...defaultRunProperties })] })], width: { size: 30, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.birthYear, ...defaultRunProperties })], alignment: AlignmentType.CENTER })], width: { size: 14, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.specialty, ...defaultRunProperties })] })], width: { size: 28, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.degree, ...defaultRunProperties })] })], width: { size: 20, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders }),
                     ]
                 }))
             ],
         });
     };
 
-    const createEmulationTable = () => {
+    const createEmulationTable = (teachers: TeacherInfo[]) => {
         return new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: [
                 new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "SỐ TIẾT/TUẦN", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "TRƯỜNG", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "HUYỆN", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "THÀNH PHỐ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "GHI CHÚ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "STT", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 8, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "HỌ VÀ TÊN", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 25, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "TRƯỜNG", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 22, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "HUYỆN", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "THÀNH PHỐ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "GHI CHÚ", ...tableHeaderFormat })], alignment: AlignmentType.CENTER })], width: { size: 15, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, borders: tableBorders, shading: { fill: TABLE_HEADER_BG, type: ShadingType.CLEAR } }),
                     ],
                     tableHeader: true,
                 }),
-                ...Array.from({length: 5}).map((_, i) => new TableRow({
+                ...teachers.map((t, i) => new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: "", spacing: { after: 200 } })], borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (i + 1).toString(), ...defaultRunProperties })], alignment: AlignmentType.CENTER })], borders: tableBorders }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t.name, ...defaultRunProperties })] })], borders: tableBorders }),
                         new TableCell({ children: [new Paragraph({ text: "", spacing: { after: 200 } })], borders: tableBorders }),
                         new TableCell({ children: [new Paragraph({ text: "", spacing: { after: 200 } })], borders: tableBorders }),
                         new TableCell({ children: [new Paragraph({ text: "", spacing: { after: 200 } })], borders: tableBorders }),
@@ -2189,8 +2191,18 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
         });
     };
 
+    // Helper: robust date formatting (YYYY-MM-DD or YYYY/MM/DD → DD/MM/YYYY)
+    const formatDate = (dateStr: string): string => {
+        const match = dateStr.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+        if (match) return `${match[3].padStart(2,'0')}/${match[2].padStart(2,'0')}/${match[1]}`;
+        return dateStr; // Already DD/MM/YYYY or other format
+    };
+
     const meetingSections = data.meetings.map((m, mIdx) => {
+        const teacherNames = data.teachers.map(t => t.name).join(', ');
         return [
+            // Page break TRƯỚC biên bản (trừ biên bản đầu tiên)
+            ...(mIdx > 0 ? [new Paragraph({ pageBreakBefore: true })] : []),
             createMeetingHeader(data.schoolName, data.groupName),
             new Paragraph({ text: "", spacing: { after: 400 } }),
             new Paragraph({
@@ -2200,13 +2212,14 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             }),
             new Paragraph({
                 children: [
-                    new TextRun({ text: "NGÀY: " + (m.date.includes('-') && m.date.split('-')[0].length === 4 ? m.date.split('-').reverse().join('/') : m.date), ...defaultRunProperties })
+                    new TextRun({ text: "NGÀY: " + formatDate(m.date), ...defaultRunProperties })
                 ],
                 alignment: AlignmentType.CENTER,
                 spacing: { after: 400 }
             }),
             new Paragraph({ children: [new TextRun({ text: "1. KIỂM DIỆN:", ...headerFormat })] }),
-            ...data.teachers.map(t => new Paragraph({ children: [new TextRun({ text: "- " + t.name, ...defaultRunProperties })] })),
+            new Paragraph({ children: [new TextRun({ text: `- Có mặt: ${data.teachers.length}/${data.teachers.length} đ/c. Gồm: ${teacherNames}.`, ...defaultRunProperties })] }),
+            new Paragraph({ children: [new TextRun({ text: "- Vắng mặt: Không.", ...defaultRunProperties })] }),
             new Paragraph({ children: [new TextRun({ text: "2. THÀNH PHẦN THAM DỰ:", ...headerFormat })] }),
             new Paragraph({ children: [new TextRun({ text: "- Chủ trì: " + data.hostName, ...defaultRunProperties })] }),
             new Paragraph({ children: [new TextRun({ text: "- Thư ký: " + data.secretaryName, ...defaultRunProperties })] }),
@@ -2217,7 +2230,6 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             ...processMarkdownToDocxChildren(m.contentMarkdown),
             new Paragraph({ text: "", spacing: { after: 800 } }),
             createSignaturesTable("THƯ KÝ", "CHỦ TRÌ", data.secretaryName, data.hostName),
-            new Paragraph({ pageBreakBefore: mIdx < data.meetings.length - 1 ? true : false }) // Không ngắt trang ở biên bản cuối cùng
         ];
     });
 
@@ -2229,7 +2241,9 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
         new Paragraph({ children: [new TextRun({ text: "SỔ SINH HOẠT CHUYÊN MÔN", ...titleFormat })], alignment: AlignmentType.CENTER, spacing: { after: 1000 } }),
         new Paragraph({ children: [new TextRun({ text: "TỔ/NHÓM: " + data.groupName.toUpperCase(), ...titleFormat })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
         new Paragraph({ children: [new TextRun({ text: "TRƯỜNG: " + data.schoolName.toUpperCase(), ...titleFormat })], alignment: AlignmentType.CENTER }),
-        new Paragraph({ text: "", spacing: { after: 4000 } }),
+        new Paragraph({ text: "", spacing: { after: 2000 } }),
+        new Paragraph({ children: [new TextRun({ text: "Nhóm trưởng: " + data.leaderName, bold: true, size: 28, font: "Times New Roman" })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+        new Paragraph({ text: "", spacing: { after: 2000 } }),
         new Paragraph({ children: [new TextRun({ text: "NĂM HỌC: " + data.academicYear, ...headerFormat })], alignment: AlignmentType.CENTER }),
         new Paragraph({ pageBreakBefore: true }),
 
@@ -2265,7 +2279,7 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
 
         // Page 4: Emulation
         new Paragraph({ children: [new TextRun({ text: "ĐĂNG KÍ DANH HIỆU THI ĐUA", ...headerFormat })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
-        createEmulationTable(),
+        createEmulationTable(data.teachers),
         new Paragraph({ pageBreakBefore: true }),
 
         // Page 5,6: Central Activities
@@ -2288,8 +2302,24 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             {
                 properties: {
                     page: {
-                        margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } // 2cm on all sides
-                    }
+                        margin: { top: 1134, right: 1134, bottom: 1134, left: 1701 }, // 2cm top/right/bottom, 3cm left (đóng gáy)
+                        pageNumbers: { start: 1 },
+                    },
+                    footers: {
+                        default: new Footer({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({ text: "Trang ", font: "Times New Roman", size: 20, color: "888888" }),
+                                        new TextRun({ children: [PageNumber.CURRENT], font: "Times New Roman", size: 20, color: "888888" }),
+                                        new TextRun({ text: " / ", font: "Times New Roman", size: 20, color: "888888" }),
+                                        new TextRun({ children: [PageNumber.TOTAL_PAGES], font: "Times New Roman", size: 20, color: "888888" }),
+                                    ],
+                                    alignment: AlignmentType.CENTER,
+                                }),
+                            ],
+                        }),
+                    },
                 },
                 children: [
                     ...frontMatter,
