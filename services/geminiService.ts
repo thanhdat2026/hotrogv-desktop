@@ -25,8 +25,8 @@ let _routerConfig: {
 } = {
     url: (import.meta.env.VITE_9ROUTER_URL || '').trim(),
     key: (import.meta.env.VITE_9ROUTER_KEY || '').trim(),
-    model: (import.meta.env.VITE_9ROUTER_MODEL || 'ag/gemini-3.7-flash-high').trim(),
-    models: ['ag/gemini-3.7-flash-high'],
+    model: (import.meta.env.VITE_9ROUTER_MODEL || 'ag/gemini-3.8-flash-high').trim(),
+    models: ['ag/gemini-3.8-flash-high'],
     available: false,
     _exhaustedModels: new Set(),
 };
@@ -140,8 +140,8 @@ const _getNextAvailableModel = (failedModel: string): string | null => {
         m => !_routerConfig._exhaustedModels.has(m) && _getModelPool(m) !== failedPool && !_exhaustedPools.has(_getModelPool(m))
     );
     if (otherPoolModels.length > 0) {
-        // Ưu tiên gemini-3.7-flash-high theo yêu cầu user
-        const preferred = otherPoolModels.find(m => m.includes('3.7-flash-high') || m.includes('3-7-flash-high'));
+        // Ưu tiên gemini-3.8/3.7-flash-high
+        const preferred = otherPoolModels.find(m => m.includes('3.8-flash-high')) || otherPoolModels.find(m => m.includes('3.7-flash-high'));
         const next = preferred || otherPoolModels[0];
         _routerConfig.model = next;
         return next;
@@ -150,7 +150,7 @@ const _getNextAvailableModel = (failedModel: string): string | null => {
     // Không có pool khác → thử model bất kỳ chưa exhausted
     const anyAvailable = _routerConfig.models.filter(m => !_routerConfig._exhaustedModels.has(m));
     if (anyAvailable.length > 0) {
-        const preferred = anyAvailable.find(m => m.includes('3.7-flash-high') || m.includes('3-7-flash-high'));
+        const preferred = anyAvailable.find(m => m.includes('3.8-flash-high')) || anyAvailable.find(m => m.includes('3.7-flash-high'));
         const next = preferred || anyAvailable[0];
         _routerConfig.model = next;
         return next;
@@ -458,12 +458,12 @@ const callAIWithFallback = async (options: AICallOptions): Promise<string> => {
             let visionModelOverride: string | undefined;
             const currentModel = get9RouterModel();
             if (images && images.length > 0 && currentModel.toLowerCase().includes('claude')) {
-                // Ưu tiên ag/gemini-3.7-flash-high, lọc bỏ models đã exhausted (404/429)
+                // Ưu tiên ag/gemini-3.8/3.7-flash-high, lọc bỏ models đã exhausted (404/429)
                 const geminiModels = get9RouterModels().filter(m => 
                     m.toLowerCase().includes('gemini') && !_routerConfig._exhaustedModels.has(m)
                 );
-                // Ưu tiên 3.7-flash-high trước
-                const preferred = geminiModels.find(m => m.includes('3.7-flash-high') || m.includes('3-7-flash-high'));
+                // Ưu tiên 3.8-flash-high trước, fallback 3.7
+                const preferred = geminiModels.find(m => m.includes('3.8-flash-high')) || geminiModels.find(m => m.includes('3.7-flash-high'));
                 if (preferred) {
                     visionModelOverride = preferred;
                 } else if (geminiModels.length > 0) {

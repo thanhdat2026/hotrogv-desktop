@@ -501,6 +501,14 @@ const App = () => {
   };
 
   const handleGenerateSHCM = async () => {
+      // Validate input trước khi gọi AI
+      if (!shcmInput.schoolName.trim()) { alert('Vui lòng nhập Tên trường.'); return; }
+      if (!shcmInput.groupName.trim()) { alert('Vui lòng nhập Tên tổ / nhóm.'); return; }
+      if (!shcmInput.academicYear.trim()) { alert('Vui lòng nhập Năm học.'); return; }
+      if (shcmInput.teachers.length === 0 || shcmInput.teachers.every(t => !t.name.trim())) {
+          const ok = confirm('Danh sách giáo viên đang trống. AI sẽ tự tạo tên giả. Bạn có muốn tiếp tục?');
+          if (!ok) return;
+      }
       setLoading(true);
       setShcmResult(null);
       try {
@@ -1765,16 +1773,28 @@ useEffect(() => {
   const getFriendlyModelName = (model: string): string => {
       if (!model) return '';
       const m = model.toLowerCase();
+      // Claude models
+      if (m.includes('claude') && m.includes('opus') && m.includes('thinking')) return '🧠 Claude Opus (Suy luận sâu)';
       if (m.includes('claude') && m.includes('opus')) return '🧠 Claude Opus (Cao cấp nhất)';
       if (m.includes('claude') && m.includes('sonnet')) return '🧠 Claude Sonnet';
+      // OpenAI models
+      if (m.includes('gpt') && m.includes('o3')) return '🤖 GPT o3';
       if (m.includes('gpt') && m.includes('4')) return '🤖 GPT-4';
-      if (m.includes('o3') || m.includes('o4')) return '🤖 OpenAI ' + model;
+      if (m.includes('o3') || m.includes('o4')) return '🤖 OpenAI ' + model.split('/').pop();
+      // Gemini models — order matters (most specific first)
+      if (m.includes('gemini') && m.includes('agent')) return '💎 Gemini Agent';
+      if (m.includes('gemini') && m.includes('pro') && m.includes('low')) return '💎 Gemini Pro (Tiết kiệm)';
+      if (m.includes('gemini') && m.includes('pro')) return '💎 Gemini Pro';
+      if (m.includes('gemini') && m.includes('3.8')) return '💎 Gemini 3.8 Flash';
       if (m.includes('gemini') && m.includes('3.7')) return '💎 Gemini 3.7 Flash';
+      if (m.includes('gemini') && m.includes('3.6')) return '💎 Gemini 3.6 Flash';
       if (m.includes('gemini') && m.includes('3.5')) return '💎 Gemini 3.5 Flash';
+      if (m.includes('gemini') && m.includes('ons')) return '💎 Gemini ONS';
       if (m.includes('gemini') && m.includes('2.5-pro')) return '💎 Gemini 2.5 Pro';
       if (m.includes('gemini') && m.includes('2.5')) return '💎 Gemini 2.5 Flash';
+      if (m.includes('gemini') && m.includes('1.5')) return '💎 Gemini 1.5 Flash';
       if (m.includes('gemini')) return '💎 Gemini ' + model.replace(/^.*gemini-?/i, '');
-      return model;
+      return model.split('/').pop() || model;
   };
 
   const renderMarkdown = (content: string) => {
