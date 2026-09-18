@@ -113,7 +113,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const routerUrl = process.env.ROUTER_URL || '';
     const routerKey = process.env.ROUTER_KEY || '';
-    const routerModel = process.env.ROUTER_MODEL || 'gemini-2.5-flash';
+    const routerModel = process.env.ROUTER_MODEL || 'ag/gemini-3.8-flash-high';
     const routerModels = process.env.ROUTER_MODELS || routerModel;
 
     return res.status(200).json({
