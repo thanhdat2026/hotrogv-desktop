@@ -37,7 +37,7 @@ if (pdfjs.GlobalWorkerOptions) {
     pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 }
 
-type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm' | 'dashboard' | 'comments' | 'edu-plan';
+type TabType = 'lesson' | 'worksheet' | 'exam' | 'converter' | 'similar-exam' | 'guide' | 'shcm' | 'dashboard' ;
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const App = () => {
@@ -79,16 +79,12 @@ const App = () => {
   const [chatMessages, setChatMessages] = useState<{role: 'user'|'ai'; text: string}[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(false);
-  const [commentInput, setCommentInput] = useState({ students: '', grade: '', subject: '', style: 'tích cực' });
-  const [commentResult, setCommentResult] = useState<string | null>(null);
   
   // A3: Lesson editing state
   const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [editedLessonMarkdown, setEditedLessonMarkdown] = useState('');
 
   // C2: Edu Plan
-  const [eduPlanInput, setEduPlanInput] = useState({ semester: 'Cả năm', year: '2025-2026', notes: '' });
-  const [eduPlanResult, setEduPlanResult] = useState<string | null>(null);
   
   // C3: Question Bank
   const [showQuestionBank, setShowQuestionBank] = useState(false);
@@ -819,7 +815,7 @@ const App = () => {
 
   const handleTabChange = (newTab: TabType) => {
     // Info-only tabs don't destroy existing results
-    const infoTabs: TabType[] = ['dashboard', 'comments', 'edu-plan', 'guide'];
+    const infoTabs: TabType[] = ['dashboard', 'guide'];
     const isInfoTab = infoTabs.includes(newTab);
     
     // Warn if switching between work tabs and there are unsaved results
@@ -2380,28 +2376,6 @@ useEffect(() => {
                     <Users className="w-4 h-4 mr-1 sm:mr-2" />
                     SHCM
                 </button>
-                <button
-                    onClick={() => handleTabChange('comments')}
-                    className={`flex items-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                        activeTab === 'comments'
-                        ? 'bg-purple-600 text-white shadow-md'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                >
-                    <PenSquare className="w-4 h-4 mr-1 sm:mr-2" />
-                    Nhận xét HS
-                </button>
-                <button
-                    onClick={() => handleTabChange('edu-plan')}
-                    className={`flex items-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                        activeTab === 'edu-plan'
-                        ? 'bg-cyan-600 text-white shadow-md'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                >
-                    <CalendarDays className="w-4 h-4 mr-1 sm:mr-2" />
-                    KHGD
-                </button>
                 {/* Mobile: Help button inside tabs */}
                 <button
                     onClick={() => handleTabChange('guide')}
@@ -2551,199 +2525,6 @@ useEffect(() => {
             );
         })()}
 
-
-        {/* ===== NHẬN XÉT HỌC SINH TAB ===== */}
-        {activeTab === 'comments' && (
-            <div className="max-w-5xl mx-auto w-full mt-4 fade-slide-in">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-4">
-                        <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
-                            <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 px-6 py-4 border-b border-slate-100">
-                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                    <PenSquare className="w-5 h-5 text-purple-600" /> Nhận xét học sinh
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-1">AI tạo nhận xét cá nhân hóa cho từng HS</p>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Danh sách học sinh</label>
-                                    <textarea
-                                        value={commentInput.students}
-                                        onChange={e => setCommentInput({...commentInput, students: e.target.value})}
-                                        placeholder={"Mỗi dòng 1 HS, theo format:\nNguyễn Văn A - Giỏi - Tốt - Tích cực phát biểu\nTrần Thị B - Khá - Tốt - Cần rèn chữ viết\nLê Văn C - TB - Khá - Hay nghỉ học"}
-                                        className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-h-[200px] font-mono"
-                                    />
-                                    <p className="text-xs text-slate-400 mt-1">Format: Tên - Học lực - Hạnh kiểm - Đặc điểm</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Lớp</label>
-                                        <input value={commentInput.grade} onChange={e => setCommentInput({...commentInput, grade: e.target.value})} placeholder="6A1" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Phong cách</label>
-                                        <select value={commentInput.style} onChange={e => setCommentInput({...commentInput, style: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                                            <option value="tích cực">Tích cực, khích lệ</option>
-                                            <option value="trung lập">Trung lập, khách quan</option>
-                                            <option value="chi tiết">Chi tiết, cụ thể</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        if (!commentInput.students.trim()) { alert('Vui lòng nhập danh sách HS!'); return; }
-                                        setLoading(true);
-                                        setLoadingText('Đang tạo nhận xét cho từng học sinh...');
-                                        try {
-                                            const { callAI: callAIFn } = await import('./services/geminiService');
-                                            const result = await callAIFn(
-                                                `Bạn là giáo viên chủ nhiệm lớp ${commentInput.grade || '6'}. Hãy viết nhận xét cuối kỳ cho từng học sinh dưới đây. Mỗi nhận xét 3-4 câu, phong cách ${commentInput.style}, đúng văn phong sư phạm Việt Nam. Không lặp lại cấu trúc câu giữa các HS.\n\nDanh sách:\n${commentInput.students}\n\nFormat output:\n**Họ tên HS 1:** Nhận xét...\n**Họ tên HS 2:** Nhận xét...\n(tiếp tục cho tất cả HS)`
-                                            );
-                                            if (result) { setCommentResult(result); } else { alert('Không thể kết nối AI. Vui lòng kiểm tra cấu hình 9Router hoặc API Key Gemini.'); }
-                                        } catch (e) { alert('Lỗi tạo nhận xét: ' + (e as any).message); }
-                                        setLoading(false);
-                                    }}
-                                    disabled={loading}
-                                    className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center"
-                                >
-                                    {loading && activeTab === 'comments' ? <><Loader2 className="animate-spin mr-2 w-5 h-5" /> {loadingText}</> : <><Sparkles className="mr-2 w-5 h-5" /> TẠO NHẬN XÉT</>}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="lg:col-span-8">
-                        {commentResult ? (
-                            <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
-                                <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                                    <h3 className="font-bold text-slate-800">Kết quả nhận xét</h3>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => { navigator.clipboard.writeText(commentResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-medium">
-                                            <Copy className="w-4 h-4" /> Sao chép
-                                        </button>
-                                        <button onClick={async () => {
-                                            const blob = new Blob([commentResult], { type: 'text/plain;charset=utf-8' });
-                                            const fileName = `Nhan_xet_HS_${commentInput.grade || 'lop'}.txt`;
-                                            const electronAPI = (window as any).electronAPI;
-                                            if (electronAPI?.saveFile) {
-                                                const ab = await blob.arrayBuffer();
-                                                const b64 = btoa(new Uint8Array(ab).reduce((d, b) => d + String.fromCharCode(b), ''));
-                                                await electronAPI.saveFile(fileName, b64, 'txt');
-                                            } else { saveAs(blob, fileName); }
-                                        }} className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                            <Download className="w-4 h-4" /> Tải file
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="p-6 prose prose-sm max-w-none">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{commentResult}</ReactMarkdown>
-                                </div>
-                            </div>
-                        ) : (
-                            <EmptyState title="Nhận xét học sinh" message="Nhập danh sách HS → AI sẽ tạo nhận xét cá nhân hóa cho từng em, đúng văn phong sư phạm." icon={<PenSquare className="w-12 h-12 text-purple-300" />} />
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
-
-
-        {/* ===== KẾ HOẠCH GIÁO DỤC TAB ===== */}
-        {activeTab === 'edu-plan' && (
-            <div className="max-w-5xl mx-auto w-full mt-4 fade-slide-in">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-4">
-                        <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
-                            <div className="bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4 border-b border-slate-100">
-                                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                    <CalendarDays className="w-5 h-5 text-cyan-600" /> Kế hoạch giáo dục
-                                </h2>
-                                <p className="text-xs text-slate-500 mt-1">AI tạo KHGD theo CV5512/BGDĐT</p>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Môn học</label>
-                                        <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{subject}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Lớp</label>
-                                        <p className="text-sm font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">{lessonInput.grade}</p>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Năm học</label>
-                                        <input value={eduPlanInput.year} onChange={e => setEduPlanInput({...eduPlanInput, year: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Phạm vi</label>
-                                        <select value={eduPlanInput.semester} onChange={e => setEduPlanInput({...eduPlanInput, semester: e.target.value})} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                                            <option value="Cả năm">Cả năm</option>
-                                            <option value="Học kỳ 1">Học kỳ 1</option>
-                                            <option value="Học kỳ 2">Học kỳ 2</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Yêu cầu bổ sung</label>
-                                    <textarea value={eduPlanInput.notes} onChange={e => setEduPlanInput({...eduPlanInput, notes: e.target.value})} placeholder="VD: Tăng cường STEM, đổi mới PPDH, sử dụng CNTT..." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[80px]" />
-                                </div>
-                                <button
-                                    onClick={async () => {
-                                        setLoading(true);
-                                        setLoadingText('Đang tạo kế hoạch giáo dục...');
-                                        try {
-                                            const { callAI: callAIFn } = await import('./services/geminiService');
-                                            const grade = lessonInput.grade;
-                                            const result = await callAIFn(
-                                                `Bạn là chuyên gia giáo dục Việt Nam. Hãy soạn KẾ HOẠCH GIÁO DỤC môn ${subject} lớp ${grade} năm học ${eduPlanInput.year}, phạm vi: ${eduPlanInput.semester}.\n\nTheo CV5512/BGDĐT và GDPT 2018, bao gồm:\n\n## I. MỤC TIÊU\n### 1. Về phẩm chất\n### 2. Về năng lực chung\n### 3. Về năng lực đặc thù\n\n## II. PHÂN PHỐI CHƯƠNG TRÌNH\nBảng Markdown gồm: STT | Tuần | Tên bài/chủ đề | Số tiết | Thiết bị | Ghi chú\n(Liệt kê đầy đủ 35 tuần cho cả năm, hoặc 18 tuần cho HK1, 17 tuần cho HK2)\n\n## III. THIẾT BỊ DẠY HỌC\nDanh sách thiết bị theo từng chương\n\n## IV. KIỂM TRA, ĐÁNH GIÁ\n- Đánh giá thường xuyên\n- Đánh giá định kỳ (giữa kỳ, cuối kỳ)\n- Ma trận đề kiểm tra\n\n${eduPlanInput.notes ? `\nYÊU CẦU BỔ SUNG: ${eduPlanInput.notes}` : ''}\n\nViết đầy đủ, chi tiết, đúng format Markdown.`
-                                            );
-                                            if (result) { setEduPlanResult(result); } else { alert('Không thể kết nối AI. Vui lòng kiểm tra cấu hình.'); }
-                                        } catch (e) { alert('Lỗi: ' + (e as any).message); }
-                                        setLoading(false);
-                                    }}
-                                    disabled={loading}
-                                    className="w-full bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-700 hover:to-sky-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center"
-                                >
-                                    {loading && activeTab === 'edu-plan' ? <><Loader2 className="animate-spin mr-2 w-5 h-5" /> {loadingText}</> : <><Sparkles className="mr-2 w-5 h-5" /> TẠO KẾ HOẠCH</>}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="lg:col-span-8">
-                        {eduPlanResult ? (
-                            <div className="bg-white shadow-xl rounded-2xl border border-slate-100 overflow-hidden">
-                                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                                    <h3 className="font-bold text-slate-800">Kế hoạch giáo dục — {subject}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => { navigator.clipboard.writeText(eduPlanResult); alert('Đã sao chép!'); }} className="flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
-                                            <Copy className="w-4 h-4" /> Sao chép
-                                        </button>
-                                        <button onClick={async () => {
-                                            const blob = new Blob([eduPlanResult], { type: 'text/plain;charset=utf-8' });
-                                            const fileName = `KHGD_${subject}_${eduPlanInput.year}.txt`;
-                                            const electronAPI = (window as any).electronAPI;
-                                            if (electronAPI?.saveFile) {
-                                                const ab = await blob.arrayBuffer();
-                                                const b64 = btoa(new Uint8Array(ab).reduce((d, b) => d + String.fromCharCode(b), ''));
-                                                await electronAPI.saveFile(fileName, b64, 'txt');
-                                            } else { saveAs(blob, fileName); }
-                                        }} className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-800 font-medium">
-                                            <Download className="w-4 h-4" /> Tải file
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="p-6 prose prose-sm max-w-none overflow-x-auto">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{eduPlanResult}</ReactMarkdown>
-                                </div>
-                            </div>
-                        ) : (
-                            <EmptyState title="Kế hoạch giáo dục" message="AI sẽ tạo KHGD theo CV5512 bao gồm mục tiêu, phân phối chương trình, thiết bị, kiểm tra đánh giá." icon={<CalendarDays className="w-12 h-12 text-cyan-300" />} />
-                        )}
-                    </div>
-                </div>
-            </div>
-        )}
 
         {/* ===== HISTORY SLIDE PANEL ===== */}
         {showHistoryPanel && (
