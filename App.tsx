@@ -398,6 +398,8 @@ const App = () => {
   });
 
   const [shcmResult, setShcmResult] = useState<SHCMData | null>(null);
+  const [showPasteTeachersModal, setShowPasteTeachersModal] = useState(false);
+  const [pasteTeachersText, setPasteTeachersText] = useState('');
 
   useEffect(() => {
     localStorage.setItem('shcmInputSettings', JSON.stringify(shcmInput));
@@ -418,6 +420,84 @@ const App = () => {
           return;
       }
       await downloadSHCMDocument(shcmResult);
+  };
+
+  // === DÁN NHANH DANH SÁCH GV TỪ GOOGLE SHEETS / EXCEL ===
+  // Parse text dạng tab-separated (copy từ bảng tính) thành danh sách TeacherInfo
+  // Hỗ trợ: có/không STT, có/không header, có thêm cột Phân hiệu/Ghi chú
+  const parseTeachersFromClipboard = (text: string): TeacherInfo[] => {
+      if (!text.trim()) return [];
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length === 0) return [];
+
+      // Detect separator: tab (from spreadsheet) or comma
+      const hasTab = lines.some(l => l.includes('\t'));
+      const separator = hasTab ? '\t' : ',';
+
+      const parsedRows = lines.map(line => line.split(separator).map(cell => cell.trim()));
+
+      // Detect and skip header row
+      // Header thường chứa các từ khóa: "STT", "Họ", "Tên", "Năm sinh", "Chuyên", "Trình"
+      const headerKeywords = ['stt', 'họ', 'tên', 'năm', 'sinh', 'chuyên', 'trình', 'name', 'degree'];
+      let startIdx = 0;
+      if (parsedRows.length > 0) {
+          const firstRowLower = parsedRows[0].join(' ').toLowerCase();
+          if (headerKeywords.some(kw => firstRowLower.includes(kw))) {
+              startIdx = 1;
+          }
+      }
+
+      // Also skip separator rows (e.g. "---", "===", all empty)
+      const dataRows = parsedRows.slice(startIdx).filter(row => {
+          const joined = row.join('').trim();
+          return joined.length > 0 && !/^[-=|]+$/.test(joined);
+      });
+
+      if (dataRows.length === 0) return [];
+
+      // Detect if first column is STT (all numeric or empty in first col)
+      const firstColValues = dataRows.map(r => r[0] || '');
+      const isFirstColSTT = firstColValues.every(v => /^\d*$/.test(v.trim()));
+      const dataOffset = isFirstColSTT ? 1 : 0;
+
+      // Map columns: Họ tên | Năm sinh | Chuyên môn | Trình độ (ignore extra cols like Phân hiệu)
+      return dataRows.map(row => {
+          const cells = row.slice(dataOffset);
+          return {
+              name: cells[0] || '',
+              birthYear: cells[1] || '',
+              specialty: cells[2] || '',
+              degree: cells[3] || '',
+          };
+      }).filter(t => t.name.trim().length > 0); // Bỏ dòng rỗng
+  };
+
+  const handlePasteTeachersConfirm = () => {
+      const parsed = parseTeachersFromClipboard(pasteTeachersText);
+      if (parsed.length === 0) {
+          alert('Không tìm thấy giáo viên nào trong dữ liệu dán. Vui lòng kiểm tra lại định dạng.');
+          return;
+      }
+      setShcmInput(prev => ({
+          ...prev,
+          teachers: [...prev.teachers, ...parsed]
+      }));
+      setShowPasteTeachersModal(false);
+      setPasteTeachersText('');
+  };
+
+  const handlePasteTeachersReplace = () => {
+      const parsed = parseTeachersFromClipboard(pasteTeachersText);
+      if (parsed.length === 0) {
+          alert('Không tìm thấy giáo viên nào trong dữ liệu dán. Vui lòng kiểm tra lại định dạng.');
+          return;
+      }
+      setShcmInput(prev => ({
+          ...prev,
+          teachers: parsed
+      }));
+      setShowPasteTeachersModal(false);
+      setPasteTeachersText('');
   };
 
   const handleGenerateSHCM = async () => {
@@ -2908,7 +2988,10 @@ useEffect(() => {
                                 <div className="space-y-2 pt-2">
                                     <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
                                         <label className="text-sm font-semibold text-slate-700">Danh sách Giáo viên</label>
-                                        <button onClick={() => setShcmInput(prev => ({...prev, teachers: [...prev.teachers, {name: '', birthYear: '', specialty: '', degree: ''}]}))} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm text-emerald-600 font-bold hover:bg-emerald-50 transition-colors">+ Thêm GV</button>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => { setPasteTeachersText(''); setShowPasteTeachersModal(true); }} className="text-xs bg-white border border-indigo-200 px-3 py-1.5 rounded-md shadow-sm text-indigo-600 font-bold hover:bg-indigo-50 transition-colors flex items-center gap-1"><Copy className="w-3 h-3" /> Dán nhanh</button>
+                                            <button onClick={() => setShcmInput(prev => ({...prev, teachers: [...prev.teachers, {name: '', birthYear: '', specialty: '', degree: ''}]}))} className="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-md shadow-sm text-emerald-600 font-bold hover:bg-emerald-50 transition-colors">+ Thêm GV</button>
+                                        </div>
                                     </div>
                                     <div className="space-y-2 mt-2">
                                         {shcmInput.teachers.map((t, i) => (
@@ -4393,6 +4476,91 @@ useEffect(() => {
                                   )}
                               </div>
                           )}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Paste Teachers Modal */}
+      {showPasteTeachersModal && (
+          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8">
+              <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-indigo-50">
+                      <h3 className="text-lg font-bold text-indigo-800 flex items-center">
+                          <Copy className="w-5 h-5 mr-2" />
+                          Dán nhanh danh sách Giáo viên
+                      </h3>
+                      <button onClick={() => setShowPasteTeachersModal(false)} className="p-2 hover:bg-indigo-100 rounded-full transition-colors text-slate-500">
+                          <X className="w-6 h-6" />
+                      </button>
+                  </div>
+                  <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                      <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-700 space-y-1">
+                          <p className="font-bold">📋 Hướng dẫn: Copy từ Google Sheets / Excel rồi dán vào ô bên dưới</p>
+                          <p>• Hỗ trợ định dạng: <strong>Họ tên | Năm sinh | Chuyên môn | Trình độ</strong></p>
+                          <p>• Tự động nhận diện cột STT, dòng tiêu đề, và các cột thừa (Phân hiệu...)</p>
+                      </div>
+                      <textarea
+                          className="input-field w-full min-h-[120px] text-sm resize-y custom-scrollbar font-mono"
+                          placeholder={"VD: Copy từ Google Sheets sẽ ra dạng:\n1\tLê Văn Đạt\t1989\tSư phạm Toán\tCử nhân\n2\tNguyễn Văn Phúc\t1994\tSư phạm Toán\tCử nhân"}
+                          value={pasteTeachersText}
+                          onChange={(e) => setPasteTeachersText(e.target.value)}
+                          autoFocus
+                      />
+                      {/* Live Preview */}
+                      {pasteTeachersText.trim() && (() => {
+                          const preview = parseTeachersFromClipboard(pasteTeachersText);
+                          return preview.length > 0 ? (
+                              <div className="space-y-2">
+                                  <p className="text-sm font-bold text-emerald-700">✅ Nhận diện được {preview.length} giáo viên:</p>
+                                  <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                      <table className="w-full text-xs">
+                                          <thead>
+                                              <tr className="bg-slate-100">
+                                                  <th className="px-2 py-1.5 text-left font-bold text-slate-600">STT</th>
+                                                  <th className="px-2 py-1.5 text-left font-bold text-slate-600">Họ và tên</th>
+                                                  <th className="px-2 py-1.5 text-left font-bold text-slate-600">Năm sinh</th>
+                                                  <th className="px-2 py-1.5 text-left font-bold text-slate-600">Chuyên môn</th>
+                                                  <th className="px-2 py-1.5 text-left font-bold text-slate-600">Trình độ</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody>
+                                              {preview.map((t, i) => (
+                                                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                                      <td className="px-2 py-1 text-slate-400">{i + 1}</td>
+                                                      <td className="px-2 py-1 font-medium">{t.name}</td>
+                                                      <td className="px-2 py-1">{t.birthYear}</td>
+                                                      <td className="px-2 py-1">{t.specialty}</td>
+                                                      <td className="px-2 py-1">{t.degree}</td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  </div>
+                              </div>
+                          ) : (
+                              <p className="text-sm text-amber-600 font-medium">⚠️ Không nhận diện được giáo viên nào. Hãy kiểm tra lại dữ liệu.</p>
+                          );
+                      })()}
+                  </div>
+                  <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                      <button onClick={() => setShowPasteTeachersModal(false)} className="text-sm text-slate-500 hover:text-slate-700 font-medium">Hủy</button>
+                      <div className="flex gap-2">
+                          <button
+                              onClick={handlePasteTeachersReplace}
+                              disabled={!pasteTeachersText.trim()}
+                              className="px-4 py-2 text-sm font-bold rounded-lg border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 disabled:opacity-40 transition-colors"
+                          >
+                              Thay thế DS cũ
+                          </button>
+                          <button
+                              onClick={handlePasteTeachersConfirm}
+                              disabled={!pasteTeachersText.trim()}
+                              className="px-4 py-2 text-sm font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                          >
+                              Thêm vào DS hiện tại
+                          </button>
                       </div>
                   </div>
               </div>
