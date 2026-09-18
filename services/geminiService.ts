@@ -2379,7 +2379,35 @@ export const generateSHCM = async (
     ĐÓNG VAI: Chuyên gia giáo dục trung học, nhóm trưởng chuyên môn trường phổ thông.
     NHIỆM VỤ: Tạo nội dung biên bản sinh hoạt chuyên môn (Sổ SHCM) cho tổ/nhóm ${groupName} - Trường ${schoolName}, năm học ${academicYear}, môn ${subject}.
 
-    YÊU CẦU CỤ THỂ (QUAN TRỌNG):
+    ================================================================
+    CĂN CỨ PHÁP LÝ (BẮT BUỘC TUÂN THỦ):
+    ================================================================
+    - Thông tư 15/2026/TT-BGDĐT (Điều lệ trường tiểu học, THCS, THPT)
+    - Công văn 4069/BGDĐT-GDPT ngày 01/7/2026 — Hướng dẫn tổ chức sinh hoạt chuyên môn trong cơ sở GDPT
+    
+    NỘI DUNG SHCM THEO CV 4069 (5 trụ cột chính — phải luân phiên xuất hiện trong các buổi họp):
+    1. Triển khai CTGDPT; xây dựng, tổ chức thực hiện và điều chỉnh kế hoạch giáo dục nhà trường, kế hoạch dạy học môn học; dạy học tích hợp.
+    2. Đổi mới phương pháp, hình thức tổ chức dạy học và kiểm tra đánh giá theo hướng phát triển phẩm chất, năng lực HS; phân tích kết quả học tập để điều chỉnh dạy học.
+    3. Nghiên cứu bài học, sinh hoạt chuyên đề, trao đổi kinh nghiệm, chia sẻ giải pháp chuyên môn; phát hiện, tháo gỡ khó khăn, vướng mắc.
+    4. Xây dựng, khai thác, sử dụng và chia sẻ học liệu, học liệu số, học liệu mở, ngân hàng câu hỏi, công cụ KTĐG, dữ liệu GD và sản phẩm CM dùng chung.
+    5. Tăng cường ứng dụng công nghệ số và AI trong xây dựng KHBD, học liệu, tổ chức dạy học, KTĐG; đảm bảo an toàn thông tin, sử dụng AI có trách nhiệm.
+
+    GỢI Ý NỘI DUNG CẤP THCS (Phụ lục CV 4069):
+    - Thực hiện các môn học tích hợp (KHTN, Lịch sử và Địa lý, GDCD...), nội dung giáo dục địa phương
+    - Dạy học phân hóa; hỗ trợ HS phát triển năng lực, sở trường
+    - Đổi mới KTĐG; xây dựng và sử dụng công cụ đánh giá phù hợp yêu cầu cần đạt
+    - Giáo dục STEM/STEAM, nghiên cứu KHKT, hoạt động trải nghiệm hướng nghiệp
+    - Phối hợp giữa GV các phân môn tích hợp; phân tích dữ liệu học tập HS
+    - Ứng dụng công nghệ số, AI trong dạy học, KTĐG, hỗ trợ HS tự học; đạo đức học thuật
+
+    HÌNH THỨC SINH HOẠT CM (CV 4069 Mục III):
+    - Sinh hoạt theo hướng nghiên cứu bài học (mỗi môn ít nhất 02 bài/năm): chuẩn bị → dạy minh họa → quan sát → phân tích, rút kinh nghiệm → không xếp loại giờ dạy
+    - Sinh hoạt tổ chuyên môn: ít nhất 01 lần / 02 tuần; dân chủ, tôn trọng, chia sẻ
+    - Sinh hoạt cụm chuyên môn: chia sẻ liên trường, ít nhất 02 lần/năm
+
+    ================================================================
+    YÊU CẦU CỤ THỂ:
+    ================================================================
     1. Yêu cầu chung: ${requirements}${customTopicsInstruction}
     ${generalPlanInstruction}
     3. ${monthConstraint}
@@ -2387,6 +2415,8 @@ export const generateSHCM = async (
     5. TUYỆT ĐỐI TRÁNH tạo ngày họp trùng vào Chủ nhật (Sunday). Hãy đảm bảo các ngày được tạo rơi vào thứ 2, 3, 4, 5, 6, 7. Tạo ngày giả định theo năm học ${academicYear}. ĐỊNH DẠNG NGÀY THÁNG BẮT BUỘC LÀ: DD/MM/YYYY (ví dụ: 15/09/2025).
     6. NỘI DUNG BIÊN BẢN: Trình bày định dạng Markdown. Đây là phần thảo luận chuyên môn. LƯU Ý CAO NHẤT: ĐÂY LÀ CHƯƠNG TRÌNH THCS, CHỈ CÓ CÁC KHỐI LỚP 6, 7, 8, 9. MỌI KIẾN THỨC VÀ BÀI DẠY VÍ DỤ TRONG BIÊN BẢN GHI RA PHẢI THUỘC CHƯƠNG TRÌNH CẤP THCS. Đội ngũ GV thảo luận phải phù hợp với đặc thù bộ môn ${subject}. Yêu cầu độ dài: khoảng ${contentLength} chữ cho mỗi biên bản (phù hợp theo bộ môn). Trực tiếp đi vào cuộc họp (Không in lại các tiêu đề cũng như 1. Thời gian, 2. Thành phần: vì hệ thống đã tự in ra). LƯU Ý ĐẶC BIỆT: TUYỆT ĐỐI KHÔNG DÙNG TỪ "Tổ trưởng", HÃY DÙNG TỪ "Nhóm trưởng" HOẶC "Chủ trì cuộc họp" để gọi người điều hành cuộc họp.
        - Nêu rất chi tiết tiến trình, thảo luận, nội dung chuyên môn của cuộc họp (VD: phân tích từng bước bài học, tranh luận các phương án dạy học, đóng góp ý kiến về ma trận, các biện pháp đổi mới phương pháp dạy học cụ thể...). Dùng nhiều gạch đầu dòng và đoạn văn rõ ràng.
+       - PHẢI LUÂN PHIÊN 5 trụ cột CV 4069 vào các buổi họp khác nhau (không lặp lại nội dung giống nhau ở các lần họp).
+       - Ít nhất 2 buổi họp trong năm phải có hình thức NGHIÊN CỨU BÀI HỌC (dạy minh họa + quan sát + rút kinh nghiệm), theo đúng quy trình CV 4069.
        - *Quan trọng*: Các phát biểu, báo cáo chuyên đề, dạy minh họa phải NÊU TÊN NGƯỜI THỰC HIỆN, lấy ngẫu nhiên từ danh sách giáo viên: [${teacherNames}]. Không dùng tên ABC.
        
        Cấu trúc gợi ý (chỉ sinh phần thảo luận):
