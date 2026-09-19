@@ -2015,6 +2015,9 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
         color: "000000",
     };
 
+    // Line spacing 1.15 cho toàn bộ biên bản (dễ đọc khi in)
+    const defaultSpacing = { line: 276 }; // 276 twips = 1.15 line spacing
+
     const headerFormat = {
         bold: true,
         size: 26, // 13pt
@@ -2217,26 +2220,57 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
                 alignment: AlignmentType.CENTER,
                 spacing: { after: 400 }
             }),
-            new Paragraph({ children: [new TextRun({ text: "1. KIỂM DIỆN:", ...headerFormat })] }),
-            new Paragraph({ children: [new TextRun({ text: `- Có mặt: ${data.teachers.length}/${data.teachers.length} đ/c. Gồm: ${teacherNames}.`, ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "- Vắng mặt: Không.", ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "2. THÀNH PHẦN THAM DỰ:", ...headerFormat })] }),
-            new Paragraph({ children: [new TextRun({ text: "- Chủ trì: " + data.hostName, ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "- Thư ký: " + data.secretaryName, ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "- Toàn thể giáo viên tổ/nhóm " + data.groupName + ".", ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "3. THỰC HIỆN CHƯƠNG TRÌNH:", ...headerFormat })] }),
-            new Paragraph({ children: [new TextRun({ text: "- Đúng tiến độ chương trình.", ...defaultRunProperties })] }),
-            new Paragraph({ children: [new TextRun({ text: "4. NỘI DUNG CHÍNH:", ...headerFormat })] }),
+            new Paragraph({ children: [new TextRun({ text: "- Thời gian: 14 giờ 00 phút, ngày " + formatDate(m.date) + ".", ...defaultRunProperties })], spacing: { after: 100 } }),
+            new Paragraph({ children: [new TextRun({ text: "- Địa điểm: Phòng họp nhóm chuyên môn — Trường " + data.schoolName + ".", ...defaultRunProperties })], spacing: { after: 200 } }),
+            new Paragraph({ children: [new TextRun({ text: "1. KIỂM DIỆN:", ...headerFormat })], spacing: { ...defaultSpacing, after: 100 } }),
+            new Paragraph({ children: [new TextRun({ text: `- Có mặt: ${data.teachers.length}/${data.teachers.length} đ/c. Gồm: ${teacherNames}.`, ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 60 } }),
+            new Paragraph({ children: [new TextRun({ text: "- Vắng mặt: Không.", ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 200 } }),
+            new Paragraph({ children: [new TextRun({ text: "2. THÀNH PHẦN THAM DỰ:", ...headerFormat })], spacing: defaultSpacing }),
+            new Paragraph({ children: [new TextRun({ text: "- Chủ trì: " + data.hostName, ...defaultRunProperties })], spacing: defaultSpacing }),
+            new Paragraph({ children: [new TextRun({ text: "- Thư ký: " + data.secretaryName, ...defaultRunProperties })], spacing: defaultSpacing }),
+            new Paragraph({ children: [new TextRun({ text: "- Toàn thể giáo viên tổ/nhóm " + data.groupName + ".", ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 200 } }),
+            new Paragraph({ children: [new TextRun({ text: "3. THỰC HIỆN CHƯƠNG TRÌNH:", ...headerFormat })], spacing: defaultSpacing }),
+            new Paragraph({ children: [new TextRun({ text: "- Đúng tiến độ chương trình.", ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 200 } }),
+            new Paragraph({ children: [new TextRun({ text: "4. NỘI DUNG CHÍNH:", ...headerFormat })], spacing: { ...defaultSpacing, after: 100 } }),
             ...processMarkdownToDocxChildren(m.contentMarkdown),
             new Paragraph({ text: "", spacing: { after: 800 } }),
             createSignaturesTable("THƯ KÝ", "CHỦ TRÌ", data.secretaryName, data.hostName),
         ];
     });
 
+    // Cơ quan chủ quản tùy cấp: THCS → Phòng GD&ĐT, THPT → Sở GD&ĐT
+    const eduAuthority = data.schoolName.toUpperCase().includes('THPT') || data.schoolName.toUpperCase().includes('PHỔ THÔNG')
+        ? "SỞ GIÁO DỤC VÀ ĐÀO TẠO" : "PHÒNG GIÁO DỤC VÀ ĐÀO TẠO";
+
     const frontMatter = data.term1Activities ? [
-        new Paragraph({ text: "", spacing: { after: 1000 } }),
-        new Paragraph({ children: [new TextRun({ text: "SỞ GIÁO DỤC VÀ ĐÀO TẠO", ...headerFormat })], alignment: AlignmentType.CENTER }),
-        new Paragraph({ children: [new TextRun({ text: "TRƯỜNG " + data.schoolName.toUpperCase(), ...headerFormat })], alignment: AlignmentType.CENTER }),
+        // === TRANG BÌA ===
+        new Paragraph({ text: "", spacing: { after: 600 } }),
+        // Header 2 cột: Cơ quan chủ quản | Quốc hiệu
+        new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+                top: { style: BorderStyle.NONE, size: 0, color: "auto" },
+                bottom: { style: BorderStyle.NONE, size: 0, color: "auto" },
+                left: { style: BorderStyle.NONE, size: 0, color: "auto" },
+                right: { style: BorderStyle.NONE, size: 0, color: "auto" },
+                insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "auto" },
+                insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" },
+            },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: eduAuthority, ...headerFormat, size: 24 })], alignment: AlignmentType.CENTER })], width: { size: 40, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM", ...headerFormat, size: 24 })], alignment: AlignmentType.CENTER })], width: { size: 60, type: WidthType.PERCENTAGE } }),
+                    ]
+                }),
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "TRƯỜNG " + data.schoolName.toUpperCase(), ...headerFormat, size: 24, underline: {} })], alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Độc lập - Tự do - Hạnh phúc", ...headerFormat, size: 24, underline: {} })], alignment: AlignmentType.CENTER })] }),
+                    ]
+                }),
+            ]
+        }),
         new Paragraph({ text: "", spacing: { after: 3000 } }),
         new Paragraph({ children: [new TextRun({ text: "SỔ SINH HOẠT CHUYÊN MÔN", ...titleFormat })], alignment: AlignmentType.CENTER, spacing: { after: 1000 } }),
         new Paragraph({ children: [new TextRun({ text: "TỔ/NHÓM: " + data.groupName.toUpperCase(), ...titleFormat })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
