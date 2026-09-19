@@ -2202,7 +2202,11 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
     };
 
     const meetingSections = data.meetings.map((m, mIdx) => {
-        const teacherNames = data.teachers.map(t => t.name).join(', ');
+        const teacherCount = data.teachers.length;
+        const teacherNames = teacherCount > 0 ? data.teachers.map(t => t.name).join(', ') : '';
+        const attendanceText = teacherCount > 0
+            ? `- Có mặt: ${teacherCount}/${teacherCount} đ/c. Gồm: ${teacherNames}.`
+            : `- Có mặt: Tập thể giáo viên nhóm ${data.groupName}.`;
         return [
             // Page break TRƯỚC biên bản (trừ biên bản đầu tiên)
             ...(mIdx > 0 ? [new Paragraph({ pageBreakBefore: true })] : []),
@@ -2223,7 +2227,7 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             new Paragraph({ children: [new TextRun({ text: "- Thời gian: 14 giờ 00 phút, ngày " + formatDate(m.date) + ".", ...defaultRunProperties })], spacing: { after: 100 } }),
             new Paragraph({ children: [new TextRun({ text: "- Địa điểm: Phòng họp nhóm chuyên môn — Trường " + data.schoolName + ".", ...defaultRunProperties })], spacing: { after: 200 } }),
             new Paragraph({ children: [new TextRun({ text: "1. KIỂM DIỆN:", ...headerFormat })], spacing: { ...defaultSpacing, after: 100 } }),
-            new Paragraph({ children: [new TextRun({ text: `- Có mặt: ${data.teachers.length}/${data.teachers.length} đ/c. Gồm: ${teacherNames}.`, ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 60 } }),
+            new Paragraph({ children: [new TextRun({ text: attendanceText, ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 60 } }),
             new Paragraph({ children: [new TextRun({ text: "- Vắng mặt: Không.", ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 200 } }),
             new Paragraph({ children: [new TextRun({ text: "2. THÀNH PHẦN THAM DỰ:", ...headerFormat })], spacing: defaultSpacing }),
             new Paragraph({ children: [new TextRun({ text: "- Chủ trì: " + data.hostName, ...defaultRunProperties })], spacing: defaultSpacing }),
@@ -2232,7 +2236,16 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
             new Paragraph({ children: [new TextRun({ text: "3. THỰC HIỆN CHƯƠNG TRÌNH:", ...headerFormat })], spacing: defaultSpacing }),
             new Paragraph({ children: [new TextRun({ text: "- Đúng tiến độ chương trình.", ...defaultRunProperties })], spacing: { ...defaultSpacing, after: 200 } }),
             new Paragraph({ children: [new TextRun({ text: "4. NỘI DUNG CHÍNH:", ...headerFormat })], spacing: { ...defaultSpacing, after: 100 } }),
-            ...processMarkdownToDocxChildren(m.contentMarkdown),
+            ...processMarkdownToDocxChildren(m.contentMarkdown).map((child: any) => {
+                // Inject line spacing 1.15 cho Paragraph (không ảnh hưởng Table)
+                if (child instanceof Paragraph) {
+                    try {
+                        const existing = (child as any).properties?.spacing || {};
+                        (child as any).properties = { ...(child as any).properties, spacing: { line: 276, ...existing } };
+                    } catch (_) { /* ignore if structure different */ }
+                }
+                return child;
+            }),
             new Paragraph({ text: "", spacing: { after: 800 } }),
             createSignaturesTable("THƯ KÝ", "CHỦ TRÌ", data.secretaryName, data.hostName),
         ];
@@ -2358,7 +2371,9 @@ export const generateSHCMDoc = (data: SHCMData): Document => {
                 children: [
                     ...frontMatter,
                     // Meeting Minutes
-                    ...meetingSections.flat()
+                    ...meetingSections.flat(),
+                    // Fallback: Section phải có ít nhất 1 child, tránh crash docx
+                    ...(frontMatter.length === 0 && meetingSections.length === 0 ? [new Paragraph({ text: "" })] : [])
                 ]
             }
         ]
